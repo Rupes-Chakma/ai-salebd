@@ -1,0 +1,216 @@
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  Mail,
+  LockKeyhole,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  ShieldCheck,
+  Zap,
+} from "lucide-react";
+import toast from "react-hot-toast";
+
+const Login = () => {
+  const navigate = useNavigate();
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    const email = formData.email.trim().toLowerCase();
+
+    if (!email || !formData.password) {
+      toast.error("Please enter your email and password.");
+      return;
+    }
+
+    setLoading(true);
+
+    // Authentication will be connected with Supabase later.
+    setTimeout(() => {
+      setLoading(false);
+
+      toast("Login will be available after backend integration.", {
+        icon: "🔐",
+      });
+    }, 700);
+  };
+
+  return (
+    <section className="relative flex min-h-[75vh] items-center justify-center overflow-hidden px-4 py-12">
+      {/* Background Effects */}
+      <div className="pointer-events-none absolute left-0 top-10 h-64 w-64 rounded-full bg-[#8B5CF6]/10 blur-[100px]" />
+      <div className="pointer-events-none absolute bottom-0 right-0 h-64 w-64 rounded-full bg-[#38BDF8]/10 blur-[100px]" />
+
+      <div className="relative z-10 w-full max-w-md">
+        {/* Login Card */}
+        <div className="rounded-3xl border border-white/10 bg-[#211B3B]/95 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
+          {/* Logo */}
+          <div className="mb-8 text-center">
+            <Link
+              to="/"
+              className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#8B5CF6] to-[#2563EB] shadow-lg shadow-purple-500/20"
+            >
+              <Zap size={34} className="fill-white text-white" />
+            </Link>
+
+            <h1 className="text-2xl font-extrabold text-white sm:text-3xl">
+              Welcome Back!
+            </h1>
+
+            <p className="mt-2 text-sm text-[#AAA3C1]">
+              Login to continue your AI-SaleBD experience.
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Email */}
+            <div>
+              <label
+                htmlFor="login-email"
+                className="mb-2 block text-sm font-semibold text-white"
+              >
+                Email Address
+              </label>
+
+              <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#11101C] px-4 transition focus-within:border-[#8B5CF6] focus-within:ring-2 focus-within:ring-[#8B5CF6]/10">
+                <Mail size={18} className="shrink-0 text-[#AAA3C1]" />
+
+                <input
+                  id="login-email"
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="Enter your email"
+                  autoComplete="email"
+                  required
+                  className="w-full bg-transparent py-3.5 text-sm text-white outline-none placeholder:text-[#77718D]"
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label
+                htmlFor="login-password"
+                className="mb-2 block text-sm font-semibold text-white"
+              >
+                Password
+              </label>
+
+              <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#11101C] px-4 transition focus-within:border-[#8B5CF6] focus-within:ring-2 focus-within:ring-[#8B5CF6]/10">
+                <LockKeyhole size={18} className="shrink-0 text-[#AAA3C1]" />
+
+                <input
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  minLength={6}
+                  required
+                  className="w-full bg-transparent py-3.5 text-sm text-white outline-none placeholder:text-[#77718D]"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="shrink-0 text-[#AAA3C1] transition hover:text-white"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Remember Me & Forgot Password */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-[#AAA3C1]">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 accent-[#8B5CF6]"
+                />
+                Remember Me
+              </label>
+
+              <Link
+                to="/forgot-password"
+                className="text-sm font-semibold text-[#B99AFF] transition hover:text-white"
+              >
+                Forgot Password?
+              </Link>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#2563EB] py-3.5 font-bold text-white shadow-lg shadow-purple-500/10 transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? (
+                <>
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  Please wait...
+                </>
+              ) : (
+                <>
+                  Login to Account
+                  <ArrowRight size={18} />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Register Link */}
+          <div className="mt-7 border-t border-white/10 pt-6 text-center">
+            <p className="text-sm text-[#AAA3C1]">
+              Don't have an account?{" "}
+              <Link
+                to="/register"
+                className="font-bold text-[#B99AFF] transition hover:text-white"
+              >
+                Create Account
+              </Link>
+            </p>
+          </div>
+
+          {/* Security Notice */}
+          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-[#77718D]">
+            <ShieldCheck size={15} className="text-green-400" />
+            Secure account access with AI-SaleBD
+          </div>
+        </div>
+
+        <p className="mt-5 text-center text-xs text-[#77718D]">
+          Your Digital World, One Marketplace.
+        </p>
+      </div>
+    </section>
+  );
+};
+
+export default Login;

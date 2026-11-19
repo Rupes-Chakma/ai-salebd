@@ -1,0 +1,73 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Hind+Siliguri:wght@400;500;600;700&display=swap");
+
+@import "tailwindcss";
+
+@theme {
+  --color-nexora-bg: #11101c;
+  --color-nexora-card: #211b3b;
+  --color-nexora-purple: #8b5cf6;
+  --color-nexora-blue: #38bdf8;
+  --color-nexora-highlight: #b99aff;
+  --color-nexora-muted: #aaa3c1;
+
+  --font-inter: "Inter", sans-serif;
+  --font-bangla: "Hind Siliguri", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #11101c;
+  color: white;
+  font-family: "Inter", "Hind Siliguri", sans-serif;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  text-decoration: none;
+}
+
+input,
+button {
+  font: inherit;
+}
+
+.container-custom {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: 16px;
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, #8b5cf6, #38bdf8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.glow-purple {
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.2);
+}
+
+::selection {
+  background: #8b5cf6;
+  color: white;
+}
