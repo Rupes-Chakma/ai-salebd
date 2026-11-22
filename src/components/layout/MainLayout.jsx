@@ -48,7 +48,7 @@ const FloatingActions = () => {
     <div
       className="
         pointer-events-none fixed right-3 z-[60]
-        bottom-[calc(5.75rem+env(safe-area-inset-bottom))]
+        bottom-[calc(7.5rem+env(safe-area-inset-bottom))]
         flex flex-col items-end gap-3
         sm:right-5
         md:bottom-6 md:right-6
