@@ -1,142 +1,130 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import {
-  Menu,
-  X,
-  Search,
   Home,
   Store,
+  ShoppingCart,
+  ClipboardList,
+  UserRound,
   Gamepad2,
   Sparkles,
   Crown,
   Gift,
-  UserRound,
-  Headphones,
+  Monitor,
+  Film,
+  Layers,
 } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
 
-const MobileMenu = () => {
-  const [isOpen, setIsOpen] = useState(false);
+import useCartStore from "../../store/cartStore";
+import useCategoryStore from "../../store/useCategoryStore";
 
-  const navItems = [
-    { label: "Home", path: "/", icon: Home },
-    { label: "Shop", path: "/shop", icon: Store },
-    { label: "Gaming", path: "/category/gaming", icon: Gamepad2 },
-    { label: "AI Tools", path: "/category/ai-tools", icon: Sparkles },
-    {
-      label: "Subscriptions",
-      path: "/category/subscriptions",
-      icon: Crown,
-    },
-    { label: "Gift Cards", path: "/category/gift-cards", icon: Gift },
-    { label: "Special Deals", path: "/deals", icon: Sparkles },
-  ];
+const categoryIcons = {
+  Gaming: Gamepad2,
+  "AI Tools": Sparkles,
+  Subscriptions: Crown,
+  "Gift Cards": Gift,
+  Software: Monitor,
+  Entertainment: Film,
+};
 
-  const closeMenu = () => setIsOpen(false);
+const navItems = [
+  { label: "Home", path: "/", icon: Home },
+  { label: "Shop", path: "/shop", icon: Store },
+  { label: "Cart", path: "/cart", icon: ShoppingCart },
+  { label: "Orders", path: "/my-orders", icon: ClipboardList },
+  { label: "Account", path: "/account", icon: UserRound },
+];
+
+const BottomNavigation = () => {
+  const cartCount = useCartStore((state) => state.getCartCount());
+  const categories = useCategoryStore((state) => state.categories);
+
+  const activeCategories = Array.isArray(categories)
+    ? categories.filter(
+        (category) =>
+          category.status === "Active" && category.slug && category.name,
+      )
+    : [];
 
   return (
-    <>
-      {/* Hamburger Button */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        aria-label={isOpen ? "Close navigation menu" : "Open navigation menu"}
-        aria-expanded={isOpen}
-        className="rounded-lg border border-white/10 p-2.5 text-white transition hover:border-[#8B5CF6] hover:text-[#B99AFF] md:hidden"
-      >
-        {isOpen ? <X size={21} /> : <Menu size={21} />}
-      </button>
+    <nav
+      aria-label="Mobile navigation"
+      className="fixed inset-x-0 bottom-0 z-[80] w-full border-t border-white/10 bg-[#171329] shadow-[0_-8px_30px_rgba(0,0,0,0.3)] md:hidden"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
+      {/* Category Navigation */}
+      {activeCategories.length > 0 && (
+        <div className="border-b border-white/10">
+          <div className="flex min-h-11 items-center gap-2 overflow-x-auto overscroll-x-contain px-3 py-1.5 touch-pan-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {activeCategories.map((category) => {
+              const Icon = categoryIcons[category.name] || Layers;
 
-      {/* Mobile Menu Panel */}
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            {/* Background Overlay */}
-            <motion.button
-              type="button"
-              aria-label="Close menu overlay"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={closeMenu}
-              className="fixed inset-0 top-[105px] z-40 bg-black/60 md:hidden"
-            />
-
-            {/* Menu */}
-            <motion.div
-              initial={{ opacity: 0, y: -12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.2 }}
-              className="absolute left-0 right-0 top-full z-50 border-t border-white/10 bg-[#171329] p-4 shadow-2xl md:hidden"
-            >
-              {/* Search */}
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const query = new FormData(e.currentTarget).get("search");
-                  if (query?.trim()) {
-                    window.location.href = `/search?q=${encodeURIComponent(query.trim())}`;
+              return (
+                <NavLink
+                  key={category.id}
+                  to={`/category/${category.slug}`}
+                  className={({ isActive }) =>
+                    `flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8B5CF6] ${
+                      isActive
+                        ? "border-[#8B5CF6]/60 bg-[#8B5CF6]/20 text-[#C4A7FF]"
+                        : "border-white/10 bg-white/5 text-[#AAA3C1] active:bg-white/10"
+                    }`
                   }
-                  closeMenu();
-                }}
-                className="mb-4 flex items-center rounded-xl border border-white/10 bg-[#211B3B] px-3"
-              >
-                <Search size={18} className="shrink-0 text-[#AAA3C1]" />
-
-                <input
-                  name="search"
-                  type="search"
-                  placeholder="Search digital products..."
-                  className="w-full bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-[#AAA3C1]"
-                />
-              </form>
-
-              {/* Navigation Links */}
-              <nav className="flex flex-col">
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-
-                  return (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      onClick={closeMenu}
-                      className="flex items-center gap-3 rounded-lg border-b border-white/5 px-3 py-3.5 text-sm font-medium text-[#AAA3C1] transition hover:bg-[#8B5CF6]/10 hover:text-[#B99AFF]"
-                    >
-                      <Icon size={19} />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </nav>
-
-              {/* Account */}
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <Link
-                  to="/login"
-                  onClick={closeMenu}
-                  className="flex items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-3 text-sm font-semibold text-white hover:border-[#8B5CF6]"
                 >
-                  <UserRound size={17} />
-                  Login
-                </Link>
+                  <Icon size={14} />
+                  <span>{category.name}</span>
+                </NavLink>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
-                <Link
-                  to="/contact"
-                  onClick={closeMenu}
-                  className="flex items-center justify-center gap-2 rounded-lg bg-[#8B5CF6] px-3 py-3 text-sm font-semibold text-white hover:bg-[#7C3AED]"
-                >
-                  <Headphones size={17} />
-                  Support
-                </Link>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </>
+      {/* Main Navigation */}
+      <div className="mx-auto grid min-h-16 w-full max-w-lg grid-cols-5">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.path === "/"}
+              aria-label={item.label}
+              className={({ isActive }) =>
+                `relative flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 transition-colors duration-200 focus-visible:outline-none focus-visible:bg-white/5 ${
+                  isActive
+                    ? "text-[#B99AFF]"
+                    : "text-[#AAA3C1] active:text-white"
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <span className="relative flex items-center justify-center">
+                    <Icon size={21} strokeWidth={isActive ? 2.5 : 1.8} />
+
+                    {item.label === "Cart" && cartCount > 0 && (
+                      <span className="absolute -right-3 -top-2 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+                        {cartCount > 99 ? "99+" : cartCount}
+                      </span>
+                    )}
+                  </span>
+
+                  <span className="max-w-full truncate text-[10px] font-medium leading-tight">
+                    {item.label}
+                  </span>
+
+                  {isActive && (
+                    <span className="absolute top-0 h-0.5 w-7 rounded-full bg-[#B99AFF]" />
+                  )}
+                </>
+              )}
+            </NavLink>
+          );
+        })}
+      </div>
+    </nav>
   );
 };
 
-export default MobileMenu;
+export default BottomNavigation;

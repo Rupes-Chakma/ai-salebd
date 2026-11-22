@@ -6,16 +6,29 @@ import {
   ShoppingBag,
   Clock,
   CheckCircle2,
-  XCircle,
   Eye,
   RefreshCw,
-  CalendarDays,
-  CreditCard,
   Users,
   TrendingUp,
 } from "lucide-react";
 
 const ORDER_KEY = "nexora-orders";
+
+const ORDER_STATUSES = [
+  "Pending",
+  "Confirmed",
+  "Processing",
+  "Completed",
+  "Cancelled",
+];
+
+const PAYMENT_STATUSES = [
+  "Not Paid",
+  "Pending",
+  "Paid",
+  "Verified",
+  "Rejected",
+];
 
 const formatPrice = (amount) =>
   `৳${Number(amount || 0).toLocaleString("en-BD")}`;
@@ -25,7 +38,9 @@ const formatDate = (date) => {
 
   const parsedDate = new Date(date);
 
-  if (Number.isNaN(parsedDate.getTime())) return "Not available";
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "Not available";
+  }
 
   return parsedDate.toLocaleString("en-BD", {
     dateStyle: "medium",
@@ -33,8 +48,16 @@ const formatDate = (date) => {
   });
 };
 
+const getOrderStatus = (status) => {
+  if (status === "Pending Verification") return "Pending";
+  return status || "Pending";
+};
+
 const getStatusStyle = (status) => {
-  switch (status) {
+  switch (getOrderStatus(status)) {
+    case "Confirmed":
+      return "bg-purple-500/10 text-purple-400 border-purple-500/20";
+
     case "Completed":
       return "bg-green-500/10 text-green-400 border-green-500/20";
 
@@ -101,18 +124,23 @@ function Orders() {
             .includes(query);
 
         const matchesStatus =
-          statusFilter === "All" || order.status === statusFilter;
+          statusFilter === "All" ||
+          getOrderStatus(order.status) === statusFilter;
 
         const matchesPayment =
-          paymentFilter === "All" || order.paymentStatus === paymentFilter;
+          paymentFilter === "All" ||
+          (order.paymentStatus || "Pending") === paymentFilter;
 
         return matchesSearch && matchesStatus && matchesPayment;
       })
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt || 0).getTime() -
-          new Date(a.createdAt || 0).getTime(),
-      );
+      .sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+
+        return (
+          (Number.isNaN(dateB) ? 0 : dateB) - (Number.isNaN(dateA) ? 0 : dateA)
+        );
+      });
   }, [orders, searchTerm, statusFilter, paymentFilter]);
 
   const totalRevenue = orders
@@ -123,11 +151,15 @@ function Orders() {
     .reduce((sum, order) => sum + Number(order.total || 0), 0);
 
   const pendingOrders = orders.filter(
-    (order) => order.status === "Pending Verification",
+    (order) => getOrderStatus(order.status) === "Pending",
+  ).length;
+
+  const confirmedOrders = orders.filter(
+    (order) => getOrderStatus(order.status) === "Confirmed",
   ).length;
 
   const completedOrders = orders.filter(
-    (order) => order.status === "Completed",
+    (order) => getOrderStatus(order.status) === "Completed",
   ).length;
 
   const stats = [
@@ -237,10 +269,11 @@ function Orders() {
             className="rounded-xl border border-white/10 bg-[#171329] px-4 py-3 text-sm text-white outline-none focus:border-[#8B5CF6]"
           >
             <option value="All">All Order Status</option>
-            <option value="Pending Verification">Pending Verification</option>
-            <option value="Processing">Processing</option>
-            <option value="Completed">Completed</option>
-            <option value="Cancelled">Cancelled</option>
+            {ORDER_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
           </select>
 
           <select
@@ -249,17 +282,17 @@ function Orders() {
             className="rounded-xl border border-white/10 bg-[#171329] px-4 py-3 text-sm text-white outline-none focus:border-[#8B5CF6]"
           >
             <option value="All">All Payment Status</option>
-            <option value="Not Paid">Not Paid</option>
-            <option value="Pending">Pending</option>
-            <option value="Paid">Paid</option>
-            <option value="Verified">Verified</option>
-            <option value="Rejected">Rejected</option>
-            <option value="Failed">Failed</option>
+            {PAYMENT_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
           </select>
         </div>
 
         <p className="mt-3 text-xs text-[#77718D]">
           Showing {filteredOrders.length} of {orders.length} orders
+          {confirmedOrders > 0 && ` • ${confirmedOrders} confirmed`}
         </p>
       </div>
 
@@ -305,7 +338,7 @@ function Orders() {
                     <span
                       className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${getStatusStyle(order.status)}`}
                     >
-                      {order.status || "Pending Verification"}
+                      {getOrderStatus(order.status)}
                     </span>
                   </div>
 
@@ -405,7 +438,7 @@ function Orders() {
                         <span
                           className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${getStatusStyle(order.status)}`}
                         >
-                          {order.status || "Pending Verification"}
+                          {getOrderStatus(order.status)}
                         </span>
                       </td>
 
@@ -427,6 +460,7 @@ function Orders() {
         )}
       </div>
 
+      {/* Demo Notice */}
       <div className="flex items-start gap-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4">
         <Users size={19} className="mt-0.5 shrink-0 text-yellow-400" />
 

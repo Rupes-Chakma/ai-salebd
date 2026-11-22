@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ShoppingBag,
@@ -25,6 +25,11 @@ const WHATSAPP_NUMBER = "8801648582639";
 
 const formatPrice = (price) => `৳${Number(price || 0).toLocaleString("en-BD")}`;
 
+const safeQuantity = (quantity) => {
+  const value = Math.floor(Number(quantity));
+  return Number.isFinite(value) ? Math.max(1, Math.min(99, value)) : 1;
+};
+
 function Cart() {
   const cartItems = useCartStore((state) => state.cartItems);
   const removeFromCart = useCartStore((state) => state.removeFromCart);
@@ -40,27 +45,125 @@ function Cart() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [removeItemId, setRemoveItemId] = useState(null);
 
-  // Check unavailable products
-  const unavailableItems = safeCartItems.filter((item) => {
-    const currentProduct = safeProducts.find(
-      (product) => String(product.id) === String(item.productId),
-    );
+  // Validate cart items against current product information
+  const validatedItems = useMemo(() => {
+    return safeCartItems.map((item) => {
+      const currentProduct = safeProducts.find(
+        (product) => String(product.id) === String(item.productId),
+      );
 
-    return !currentProduct || currentProduct.status !== "Active";
-  });
+      const quantity = safeQuantity(item.quantity);
+
+      if (!currentProduct || currentProduct.status !== "Active") {
+        return {
+          ...item,
+          currentProduct,
+          currentVariant: null,
+          currentPrice: 0,
+          quantity,
+          issue: "unavailable",
+        };
+      }
+
+      const variants = Array.isArray(currentProduct.variants)
+        ? currentProduct.variants
+        : [];
+
+      let currentVariant = null;
+
+      if (variants.length > 0) {
+        currentVariant = variants.find(
+          (variant) =>
+            String(variant.id ?? variant.name) === String(item.variantId) ||
+            String(variant.name) === String(item.variantName),
+        );
+
+        if (!currentVariant) {
+          return {
+            ...item,
+            currentProduct,
+            currentVariant: null,
+            currentPrice: 0,
+            quantity,
+            issue: "variant-unavailable",
+          };
+        }
+      }
+
+      const currentPrice = Number(
+        currentVariant?.price ?? currentProduct.price,
+      );
+
+      if (!Number.isFinite(currentPrice) || currentPrice < 0) {
+        return {
+          ...item,
+          currentProduct,
+          currentVariant,
+          currentPrice: 0,
+          quantity,
+          issue: "invalid-price",
+        };
+      }
+
+      const stockValue = currentVariant
+        ? currentVariant.stock
+        : currentProduct.stock;
+
+      const stock = Number(stockValue);
+      const hasStockLimit =
+        stockValue !== undefined &&
+        stockValue !== null &&
+        stockValue !== "" &&
+        Number.isFinite(stock);
+
+      if (hasStockLimit && stock <= 0) {
+        return {
+          ...item,
+          currentProduct,
+          currentVariant,
+          currentPrice,
+          quantity,
+          issue: "out-of-stock",
+        };
+      }
+
+      if (hasStockLimit && quantity > stock) {
+        return {
+          ...item,
+          currentProduct,
+          currentVariant,
+          currentPrice,
+          quantity,
+          availableStock: Math.floor(stock),
+          issue: "insufficient-stock",
+        };
+      }
+
+      return {
+        ...item,
+        currentProduct,
+        currentVariant,
+        currentPrice,
+        quantity,
+        issue: null,
+      };
+    });
+  }, [safeCartItems, safeProducts]);
+
+  const unavailableItems = validatedItems.filter((item) => item.issue !== null);
 
   const hasUnavailableItems = unavailableItems.length > 0;
 
-  const totalQuantity = safeCartItems.reduce(
-    (total, item) => total + Number(item.quantity || 0),
+  const totalQuantity = validatedItems.reduce(
+    (total, item) => total + item.quantity,
     0,
   );
 
-  const subtotal = safeCartItems.reduce(
-    (total, item) =>
-      total + Number(item.price || 0) * Number(item.quantity || 0),
-    0,
-  );
+  const subtotal = validatedItems.reduce((total, item) => {
+    if (item.issue) return total;
+
+    return total + item.currentPrice * item.quantity;
+  }, 0);
 
   // Coupon Handler
   const handleCoupon = (e) => {
@@ -98,21 +201,26 @@ function Cart() {
     }
 
     if (hasUnavailableItems) {
-      toast.error("Please remove unavailable products first");
+      toast.error("Please review unavailable products or stock first");
       return;
     }
 
-    const orderLines = safeCartItems.map((item, index) => {
-      const itemTotal = Number(item.price || 0) * Number(item.quantity || 0);
+    const orderLines = validatedItems.map((item, index) => {
+      const itemTotal = item.currentPrice * item.quantity;
 
       return [
-        `${index + 1}. ${item.name}`,
-        `   Package: ${item.variantName || "Default"}`,
-        `   Price: ${formatPrice(item.price)}`,
+        `${index + 1}. ${item.currentProduct.name}`,
+        `   Package: ${item.currentVariant?.name || "Default"}`,
+        `   Price: ${formatPrice(item.currentPrice)}`,
         `   Quantity: ${item.quantity}`,
         `   Subtotal: ${formatPrice(itemTotal)}`,
       ].join("\n");
     });
+
+    const currentSubtotal = validatedItems.reduce(
+      (total, item) => total + item.currentPrice * item.quantity,
+      0,
+    );
 
     const message = [
       "Hello AI-SaleBD! I want to place an order.",
@@ -123,16 +231,14 @@ function Cart() {
       "",
       "-------------------------",
       `Total Products: ${totalQuantity}`,
-      `Grand Total: ${formatPrice(subtotal)}`,
+      `Grand Total: ${formatPrice(currentSubtotal)}`,
       "",
       "Please confirm my order.",
       "",
       "Thank you!",
     ].join("\n");
 
-    const whatsappURL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-      message,
-    )}`;
+    const whatsappURL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 
     window.open(whatsappURL, "_blank", "noopener,noreferrer");
   };
@@ -229,13 +335,13 @@ function Cart() {
 
           <div>
             <h3 className="text-sm font-bold text-amber-300">
-              Some products are no longer available
+              Some cart items need attention
             </h3>
 
             <p className="mt-1 text-xs leading-6 text-[#AAA3C1]">
-              {unavailableItems.length} product(s) in your cart are inactive or
-              have been removed. Remove these products before proceeding to
-              checkout.
+              {unavailableItems.length} cart item(s) are unavailable, have
+              changed packages, or have insufficient stock. Please review these
+              items before checkout.
             </p>
           </div>
         </div>
@@ -245,10 +351,8 @@ function Cart() {
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_360px]">
         {/* Cart Products */}
         <div className="space-y-4">
-          {safeCartItems.map((item) => {
-            const isUnavailable = unavailableItems.some(
-              (unavailable) => unavailable.cartId === item.cartId,
-            );
+          {validatedItems.map((item) => {
+            const isUnavailable = Boolean(item.issue);
 
             return (
               <div
@@ -299,7 +403,14 @@ function Cart() {
 
                       {isUnavailable && (
                         <span className="mt-2 inline-block rounded-md bg-amber-400/10 px-2 py-1 text-[10px] font-bold text-amber-300">
-                          Currently Unavailable
+                          {item.issue === "unavailable" &&
+                            "Product Unavailable"}
+                          {item.issue === "variant-unavailable" &&
+                            "Package Unavailable"}
+                          {item.issue === "invalid-price" && "Invalid Price"}
+                          {item.issue === "out-of-stock" && "Out of Stock"}
+                          {item.issue === "insufficient-stock" &&
+                            `Only ${item.availableStock} available`}
                         </span>
                       )}
                     </div>
@@ -348,12 +459,12 @@ function Cart() {
 
                     {/* Item Total */}
                     <div className="text-right">
-                      <p className="text-[10px] text-[#AAA3C1]">Item Total</p>
+                      <p className="text-[10px] text-[#AAA3C1]">
+                        Unit Price: {formatPrice(item.currentPrice)}
+                      </p>
 
                       <p className="text-sm font-extrabold text-white sm:text-base">
-                        {formatPrice(
-                          Number(item.price || 0) * Number(item.quantity || 0),
-                        )}
+                        {formatPrice(item.currentPrice * item.quantity)}
                       </p>
                     </div>
                   </div>
@@ -464,7 +575,7 @@ function Cart() {
               >
                 <MessageCircle size={19} />
                 {hasUnavailableItems
-                  ? "Remove Unavailable Products First"
+                  ? "Review Cart Items First"
                   : "Checkout via WhatsApp"}
               </button>
 

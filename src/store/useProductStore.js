@@ -14,7 +14,6 @@ const useProductStore = create(
     (set) => ({
       products: defaultProducts,
 
-      // Add Product
       addProduct: (product) =>
         set((state) => ({
           products: [
@@ -27,7 +26,6 @@ const useProductStore = create(
           ],
         })),
 
-      // Update Product
       updateProduct: (id, updatedData) =>
         set((state) => ({
           products: state.products.map((product) =>
@@ -37,7 +35,6 @@ const useProductStore = create(
           ),
         })),
 
-      // Delete Product
       deleteProduct: (id) =>
         set((state) => ({
           products: state.products.filter(
@@ -45,7 +42,6 @@ const useProductStore = create(
           ),
         })),
 
-      // Toggle Product Status
       toggleProductStatus: (id) =>
         set((state) => ({
           products: state.products.map((product) =>
@@ -59,19 +55,19 @@ const useProductStore = create(
         })),
     }),
     {
+      // Existing LocalStorage key unchanged
       name: "nexora-products",
 
-      // Restore demo products if saved data is empty or invalid
+      // Preserve an intentionally empty product array
       merge: (persistedState, currentState) => {
         const savedProducts = persistedState?.products;
 
         return {
           ...currentState,
           ...persistedState,
-          products:
-            Array.isArray(savedProducts) && savedProducts.length > 0
-              ? savedProducts
-              : currentState.products,
+          products: Array.isArray(savedProducts)
+            ? savedProducts
+            : currentState.products,
         };
       },
     },

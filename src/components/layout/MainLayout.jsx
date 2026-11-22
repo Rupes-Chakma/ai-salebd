@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { MessageCircle, ArrowUp, Headset, ChevronDown } from "lucide-react";
 
 import Header from "./Header";
-import Navbar from "./Navbar";
 import Footer from "./Footer";
 import BottomNavigation from "./BottomNavigation";
 
@@ -20,43 +19,58 @@ const FloatingActions = () => {
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
 
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, []);
 
   const handleWhatsApp = () => {
     const message = "Hello AI-SaleBD! I need some help.";
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+      message,
+    )}`;
 
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const handleBackToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
   return (
-    <div className="fixed bottom-24 right-4 z-[100] flex flex-col items-end gap-3 md:bottom-8 md:right-6">
-      {/* Support Card + WhatsApp */}
-      <div className="group relative flex flex-col items-end gap-3">
+    <div
+      className="
+        pointer-events-none fixed right-4 z-[100]
+        bottom-[calc(8rem+env(safe-area-inset-bottom))]
+        flex flex-col items-end gap-3
+        md:bottom-6 md:right-6
+      "
+    >
+      {/* WhatsApp Support */}
+      <div className="group pointer-events-auto relative flex flex-col items-end">
         {/* Support Card */}
         <div
           className={`
-            pointer-events-none w-[245px] origin-bottom-right
-            rounded-2xl border border-white/10 bg-[#211B3B] p-4
-            shadow-2xl shadow-black/30
+            absolute bottom-full right-0 mb-3
+            w-[min(245px,calc(100vw-32px))]
+            origin-bottom-right rounded-2xl
+            border border-white/10 bg-[#211B3B] p-4
+            shadow-2xl shadow-black/40
             transition-all duration-300 ease-out
-            md:pointer-events-auto
-            md:absolute md:bottom-full md:right-0 md:mb-3
-            md:opacity-0 md:invisible md:translate-y-2
-            md:group-hover:visible md:group-hover:translate-y-0
-            md:group-hover:opacity-100
+
             ${
               mobileOpen
-                ? "pointer-events-auto visible translate-y-0 opacity-100"
-                : "invisible translate-y-2 opacity-0"
+                ? "visible translate-y-0 opacity-100 pointer-events-auto"
+                : "invisible translate-y-2 opacity-0 pointer-events-none"
             }
-            md:visible md:translate-y-0 md:opacity-0
-            md:group-hover:opacity-100
+
+            md:invisible md:translate-y-2 md:opacity-0
+            md:pointer-events-none
+            md:group-hover:visible md:group-hover:translate-y-0
+            md:group-hover:opacity-100 md:group-hover:pointer-events-auto
           `}
         >
           <div className="flex items-center gap-3">
@@ -66,6 +80,7 @@ const FloatingActions = () => {
 
             <div className="flex-1">
               <p className="text-sm font-bold text-white">Need Help?</p>
+
               <p className="mt-1 text-xs text-[#AAA3C1]">
                 We're here to help you!
               </p>
@@ -86,22 +101,22 @@ const FloatingActions = () => {
           <button
             type="button"
             onClick={handleWhatsApp}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-green-500 py-2.5 text-sm font-semibold text-white transition hover:bg-green-600"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-green-500 py-2.5 text-sm font-semibold text-white transition hover:bg-green-600 active:scale-[0.98]"
           >
             <MessageCircle size={17} />
             Chat on WhatsApp
           </button>
         </div>
 
-        {/* Buttons */}
+        {/* Floating WhatsApp Buttons */}
         <div className="flex items-center gap-2">
-          {/* Mobile Expand / Collapse */}
+          {/* Mobile Support Toggle */}
           <button
             type="button"
             onClick={() => setMobileOpen((prev) => !prev)}
             aria-label={mobileOpen ? "Hide support card" : "Show support card"}
             aria-expanded={mobileOpen}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-[#292044] text-white shadow-lg transition hover:bg-[#7048E8] md:hidden"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-[#292044] text-white shadow-lg transition hover:bg-[#7048E8] active:scale-95 md:hidden"
           >
             <ChevronDown
               size={19}
@@ -136,11 +151,19 @@ const FloatingActions = () => {
         onClick={handleBackToTop}
         aria-label="Back to top"
         tabIndex={showBackToTop ? 0 : -1}
-        className={`flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-[#292044] text-white shadow-lg transition-all duration-300 hover:scale-105 hover:bg-[#7048E8] active:scale-95 md:h-11 md:w-11 ${
-          showBackToTop
-            ? "translate-y-0 opacity-100"
-            : "pointer-events-none translate-y-3 opacity-0"
-        }`}
+        className={`
+          pointer-events-auto flex h-10 w-10 items-center justify-center
+          rounded-full border border-white/10
+          bg-[#292044] text-white shadow-lg
+          transition-all duration-300
+          hover:scale-105 hover:bg-[#7048E8]
+          active:scale-95 md:h-11 md:w-11
+          ${
+            showBackToTop
+              ? "translate-y-0 opacity-100"
+              : "pointer-events-none translate-y-3 opacity-0"
+          }
+        `}
       >
         <ArrowUp size={21} />
       </button>
@@ -150,14 +173,15 @@ const FloatingActions = () => {
 
 const MainLayout = ({ children }) => {
   return (
-    <div className="flex min-h-screen flex-col bg-[#11101C]">
+    <div className="flex min-h-screen min-w-0 flex-col bg-[#11101C]">
       <Header />
-      <Navbar />
 
-      <main className="min-w-0 flex-1 pb-20 md:pb-0">{children}</main>
+      <main className="min-w-0 w-full flex-1 pb-32 md:pb-0">{children}</main>
 
       <Footer />
+
       <BottomNavigation />
+
       <FloatingActions />
     </div>
   );

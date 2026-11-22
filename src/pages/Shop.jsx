@@ -16,72 +16,134 @@ import ProductCard from "../components/products/ProductCard";
 import useProductStore from "../store/useProductStore";
 import useCategoryStore from "../store/useCategoryStore";
 
-function Shop() {
-  // Get Products from Zustand Store
-  const products = useProductStore((state) => state.products);
+const normalize = (value) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase();
 
-  // Get Categories from Zustand Store
+const getCategoryName = (category) => {
+  if (typeof category === "string") return category;
+
+  if (category && typeof category === "object") {
+    return category.name || category.title || "";
+  }
+
+  return "";
+};
+
+function Shop() {
+  const products = useProductStore((state) => state.products);
   const categories = useCategoryStore((state) => state.categories);
 
-  // Only Active Categories
-  const activeCategories = Array.isArray(categories)
-    ? categories.filter((category) => category.status === "Active")
-    : [];
-
-  // States
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All Products");
   const [sort, setSort] = useState("featured");
   const [visibleCount, setVisibleCount] = useState(8);
 
-  // Filter Products
+  // Only active categories
+  const activeCategories = useMemo(() => {
+    if (!Array.isArray(categories)) return [];
+
+    return categories
+      .filter(
+        (category) =>
+          category &&
+          category.status === "Active" &&
+          category.name &&
+          category.slug,
+      )
+      .sort((a, b) => {
+        if (a.name === "AI Tools") return -1;
+        if (b.name === "AI Tools") return 1;
+        return 0;
+      });
+  }, [categories]);
+
+  // Filter and sort products
   const filteredProducts = useMemo(() => {
     let result = (Array.isArray(products) ? products : []).filter(
-      (product) => product && product.status !== "Inactive",
+      (product) => product && (!product.status || product.status === "Active"),
     );
 
-    // Search Filter
-    if (search.trim()) {
-      const query = search.trim().toLowerCase();
+    // Search filter
+    const query = normalize(search);
 
-      result = result.filter((product) =>
-        `${product.name || ""} ${product.category || ""} ${product.brand || ""}`
-          .toLowerCase()
-          .includes(query),
-      );
+    if (query) {
+      result = result.filter((product) => {
+        const searchableFields = [
+          product.name,
+          product.brand,
+          getCategoryName(product.category),
+          product.description,
+          product.slug,
+        ];
+
+        return searchableFields.some((field) =>
+          normalize(field).includes(query),
+        );
+      });
     }
 
-    // Dynamic Category Filter
+    // Category filter
     if (activeCategory !== "All Products") {
-      result = result.filter(
-        (product) =>
-          product.category?.trim().toLowerCase() ===
-          activeCategory.trim().toLowerCase(),
+      const selectedCategory = activeCategories.find(
+        (category) => category.name === activeCategory,
       );
+
+      const selectedName = normalize(activeCategory);
+      const selectedSlug = normalize(selectedCategory?.slug);
+
+      result = result.filter((product) => {
+        const productCategory = product.category;
+
+        if (productCategory && typeof productCategory === "object") {
+          const name = normalize(productCategory.name || productCategory.title);
+          const slug = normalize(productCategory.slug);
+
+          return (
+            name === selectedName || (selectedSlug && slug === selectedSlug)
+          );
+        }
+
+        return normalize(productCategory) === selectedName;
+      });
     }
 
     // Sorting
-    if (sort === "low-high") {
-      result.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
-    } else if (sort === "high-low") {
-      result.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
-    } else if (sort === "name") {
-      result.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-    } else if (sort === "featured") {
-      result.sort(
-        (a, b) =>
-          Number(Boolean(b.featured || b.badge)) -
-          Number(Boolean(a.featured || a.badge)),
-      );
+    switch (sort) {
+      case "low-high":
+        result.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+        break;
+
+      case "high-low":
+        result.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+        break;
+
+      case "name":
+        result.sort((a, b) =>
+          String(a.name || "").localeCompare(String(b.name || "")),
+        );
+        break;
+
+      case "featured":
+        result.sort(
+          (a, b) =>
+            Number(Boolean(b.featured || b.badge)) -
+            Number(Boolean(a.featured || a.badge)),
+        );
+        break;
+
+      default:
+        break;
     }
 
     return result;
-  }, [products, search, activeCategory, sort]);
+  }, [products, search, activeCategory, activeCategories, sort]);
 
-  // Display Products
+  // Products currently visible
   const displayedProducts = filteredProducts.slice(0, visibleCount);
 
-  // Reset Filters
+  // Reset all filters
   const resetFilters = () => {
     setSearch("");
     setActiveCategory("All Products");
@@ -89,18 +151,35 @@ function Shop() {
     setVisibleCount(8);
   };
 
-  // Category Selection
+  // Category selection
   const selectCategory = (categoryName) => {
     setActiveCategory(categoryName);
     setVisibleCount(8);
   };
 
+  // Search input
+  const handleSearchChange = (value) => {
+    setSearch(value);
+    setVisibleCount(8);
+  };
+
+  // Sorting
+  const handleSortChange = (value) => {
+    setSort(value);
+    setVisibleCount(8);
+  };
+
+  const hasActiveFilters =
+    Boolean(search.trim()) ||
+    activeCategory !== "All Products" ||
+    sort !== "featured";
+
   return (
     <div className="min-h-screen overflow-hidden pb-12">
       {/* Premium Shop Hero */}
       <section className="relative overflow-hidden border-b border-white/10 bg-[#0d0a1b]">
-        {/* Background Effects */}
         <div className="pointer-events-none absolute -left-32 -top-32 h-80 w-80 rounded-full bg-purple-600/15 blur-[110px]" />
+
         <div className="pointer-events-none absolute -right-20 top-10 h-72 w-72 rounded-full bg-blue-600/10 blur-[100px]" />
 
         <div className="container-custom relative py-12 sm:py-16 lg:py-20">
@@ -109,13 +188,14 @@ function Shop() {
             <Link to="/" className="transition hover:text-white">
               Home
             </Link>
+
             <span className="text-gray-600">/</span>
+
             <span className="font-medium text-purple-300">Shop</span>
           </div>
 
           <div className="mt-8 grid items-center gap-8 lg:grid-cols-[1fr_auto]">
             <div className="max-w-2xl">
-              {/* Badge */}
               <div className="inline-flex items-center gap-2 rounded-full border border-purple-400/20 bg-purple-500/10 px-4 py-2 text-xs font-semibold text-purple-300">
                 <Sparkles size={14} />
                 AI-SaleBD Digital Marketplace
@@ -134,7 +214,6 @@ function Shop() {
                 products and digital essentials — all in one marketplace.
               </p>
 
-              {/* Hero Highlights */}
               <div className="mt-7 flex flex-wrap gap-3">
                 <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs text-gray-300">
                   <Zap size={15} className="text-yellow-400" />
@@ -152,14 +231,17 @@ function Shop() {
             <div className="hidden lg:flex lg:justify-center">
               <div className="relative flex h-44 w-44 items-center justify-center rounded-[36px] border border-purple-400/20 bg-gradient-to-br from-purple-500/20 to-blue-500/10 shadow-2xl shadow-purple-900/20">
                 <div className="absolute inset-3 rounded-[28px] border border-white/10" />
+
                 <Sparkles
                   size={76}
                   strokeWidth={1.3}
                   className="text-purple-300"
                 />
+
                 <div className="absolute -right-5 -top-4 rounded-xl border border-white/10 bg-[#211B3B] px-3 py-2 text-xs font-bold text-white shadow-xl">
                   AI + Digital
                 </div>
+
                 <div className="absolute -bottom-4 -left-5 rounded-xl border border-white/10 bg-[#211B3B] px-3 py-2 text-xs font-bold text-purple-300 shadow-xl">
                   Explore Now
                 </div>
@@ -180,23 +262,18 @@ function Shop() {
               <input
                 type="search"
                 value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setVisibleCount(8);
-                }}
+                onChange={(event) => handleSearchChange(event.target.value)}
                 placeholder="Search AI tools, software, subscriptions..."
-                className="w-full bg-transparent py-3 text-sm text-white outline-none placeholder:text-[#77718D]"
+                aria-label="Search shop products"
+                className="w-full min-w-0 bg-transparent py-3 text-sm text-white outline-none placeholder:text-[#77718D]"
               />
 
               {search && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setSearch("");
-                    setVisibleCount(8);
-                  }}
+                  onClick={() => handleSearchChange("")}
                   aria-label="Clear search"
-                  className="rounded-lg p-1 text-[#AAA3C1] transition hover:bg-white/10 hover:text-white"
+                  className="shrink-0 rounded-lg p-1 text-[#AAA3C1] transition hover:bg-white/10 hover:text-white"
                 >
                   <X size={17} />
                 </button>
@@ -209,10 +286,7 @@ function Shop() {
 
               <select
                 value={sort}
-                onChange={(e) => {
-                  setSort(e.target.value);
-                  setVisibleCount(8);
-                }}
+                onChange={(event) => handleSortChange(event.target.value)}
                 aria-label="Sort products"
                 className="min-w-0 flex-1 cursor-pointer bg-transparent py-3 text-sm text-white outline-none"
               >
@@ -248,6 +322,7 @@ function Shop() {
                 <h2 className="text-sm font-bold text-white">
                   Browse Categories
                 </h2>
+
                 <p className="mt-0.5 text-[11px] text-[#AAA3C1]">
                   Find what you are looking for
                 </p>
@@ -259,11 +334,11 @@ function Shop() {
             </span>
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-3">
-            {/* All Products */}
+          <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
               onClick={() => selectCategory("All Products")}
+              aria-pressed={activeCategory === "All Products"}
               className={`shrink-0 rounded-full border px-4 py-2.5 text-xs font-semibold transition duration-200 sm:text-sm ${
                 activeCategory === "All Products"
                   ? "border-purple-500 bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-900/20"
@@ -273,12 +348,12 @@ function Shop() {
               All Products
             </button>
 
-            {/* Categories from Admin */}
             {activeCategories.map((category) => (
               <button
-                key={category.id}
+                key={category.id ?? category.slug}
                 type="button"
                 onClick={() => selectCategory(category.name)}
+                aria-pressed={activeCategory === category.name}
                 className={`shrink-0 rounded-full border px-4 py-2.5 text-xs font-semibold transition duration-200 sm:text-sm ${
                   activeCategory === category.name
                     ? "border-purple-500 bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-900/20"
@@ -311,9 +386,7 @@ function Shop() {
               </p>
             </div>
 
-            {(search ||
-              activeCategory !== "All Products" ||
-              sort !== "featured") && (
+            {hasActiveFilters && (
               <button
                 type="button"
                 onClick={resetFilters}

@@ -31,6 +31,18 @@ const initialForm = {
   variants: [{ ...initialVariant }],
 };
 
+const getCategoryName = (category) => {
+  if (typeof category === "string") return category;
+  return category?.name || category?.title || "";
+};
+
+const createSlug = (value) =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
 function EditProduct() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -38,19 +50,21 @@ function EditProduct() {
   const products = useProductStore((state) => state.products);
   const updateProduct = useProductStore((state) => state.updateProduct);
 
-  const product = products.find((item) => String(item.id) === String(id));
+  const safeProducts = Array.isArray(products) ? products : [];
+
+  const product = safeProducts.find((item) => String(item.id) === String(id));
 
   const [form, setForm] = useState(initialForm);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Load Existing Product
+  // Load existing product
   useEffect(() => {
     if (!product) return;
 
     setForm({
       name: product.name || "",
-      category: product.category || "",
+      category: getCategoryName(product.category),
       brand: product.brand || "",
       image: product.image || "",
       description: product.description || "",
@@ -75,9 +89,9 @@ function EditProduct() {
     setIsLoaded(true);
   }, [product]);
 
-  // Handle Input Changes
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  // Handle basic input changes
+  const handleChange = (event) => {
+    const { name, value } = event.target;
 
     setForm((prev) => ({
       ...prev,
@@ -85,7 +99,7 @@ function EditProduct() {
     }));
   };
 
-  // Handle Variant Changes
+  // Handle variant changes
   const handleVariantChange = (index, field, value) => {
     setForm((prev) => ({
       ...prev,
@@ -95,7 +109,7 @@ function EditProduct() {
     }));
   };
 
-  // Add New Variant
+  // Add variant
   const addVariant = () => {
     setForm((prev) => ({
       ...prev,
@@ -103,7 +117,7 @@ function EditProduct() {
     }));
   };
 
-  // Remove Variant
+  // Remove variant
   const removeVariant = (index) => {
     setForm((prev) => ({
       ...prev,
@@ -111,52 +125,91 @@ function EditProduct() {
     }));
   };
 
-  // Update Product
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  // Save product
+  const handleSubmit = (event) => {
+    event.preventDefault();
 
     if (isSaving) return;
 
-    if (!form.name.trim() || !form.category || form.price === "") {
+    if (!form.name.trim() || !form.category.trim() || form.price === "") {
       toast.error("Please fill in Product Name, Category and Price");
       return;
     }
 
-    if (Number(form.price) < 0) {
-      toast.error("Price cannot be negative");
+    const productPrice = Number(form.price);
+    const oldPrice = form.oldPrice === "" ? null : Number(form.oldPrice);
+
+    if (!Number.isFinite(productPrice) || productPrice < 0) {
+      toast.error("Please enter a valid Product Price");
       return;
     }
 
-    if (form.oldPrice !== "" && Number(form.oldPrice) < 0) {
-      toast.error("Old Price cannot be negative");
+    if (oldPrice !== null && (!Number.isFinite(oldPrice) || oldPrice < 0)) {
+      toast.error("Please enter a valid Old Price");
       return;
     }
 
-    const validVariants = form.variants
-      .filter((variant) => variant.name.trim() !== "" && variant.price !== "")
-      .map((variant) => ({
+    // Validate every variant before saving
+    const validVariants = [];
+
+    for (let index = 0; index < form.variants.length; index += 1) {
+      const variant = form.variants[index];
+
+      const hasName = variant.name.trim() !== "";
+      const hasPrice = variant.price !== "";
+      const hasAnyValue =
+        hasName ||
+        hasPrice ||
+        String(variant.stock).trim() !== "" ||
+        variant.sku.trim() !== "";
+
+      // Ignore a completely empty extra variant
+      if (!hasAnyValue) continue;
+
+      if (!hasName || !hasPrice) {
+        toast.error(
+          `Variant ${index + 1}: Package Name and Price are required`,
+        );
+        return;
+      }
+
+      const variantPrice = Number(variant.price);
+      const variantStock = variant.stock === "" ? 0 : Number(variant.stock);
+
+      if (!Number.isFinite(variantPrice) || variantPrice < 0) {
+        toast.error(`Variant ${index + 1}: Invalid price`);
+        return;
+      }
+
+      if (!Number.isInteger(variantStock) || variantStock < 0) {
+        toast.error(
+          `Variant ${index + 1}: Stock must be a non-negative whole number`,
+        );
+        return;
+      }
+
+      validVariants.push({
         ...variant,
         name: variant.name.trim(),
-        price: Number(variant.price),
-        stock: Number(variant.stock || 0),
-        sku: variant.sku || "",
-      }));
+        price: variantPrice,
+        stock: variantStock,
+        sku: variant.sku.trim(),
+      });
+    }
 
-    const slug = form.name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
+    const name = form.name.trim();
+    const slug = createSlug(name) || product.slug || String(product.id);
 
     const updatedData = {
       ...form,
-      name: form.name.trim(),
+      name,
+      category: form.category.trim(),
       brand: form.brand.trim(),
       image: form.image.trim(),
       description: form.description.trim(),
       slug,
-      price: Number(form.price),
-      oldPrice: form.oldPrice !== "" ? Number(form.oldPrice) : null,
+      price: productPrice,
+      oldPrice,
       variants: validVariants,
       path: `/category/${slug}`,
       status: form.status,
@@ -182,7 +235,7 @@ function EditProduct() {
 
   const labelClass = "text-sm font-medium text-[#AAA3C1]";
 
-  // Product Not Found
+  // Product not found
   if (!product) {
     return (
       <div className="rounded-2xl border border-white/10 bg-[#211B3B] p-10 text-center">
@@ -296,7 +349,6 @@ function EditProduct() {
             </label>
           </div>
 
-          {/* Description */}
           <label className={`${labelClass} mt-5 block`}>
             Product Description
             <textarea
@@ -320,11 +372,11 @@ function EditProduct() {
                   src={form.image}
                   alt={form.name || "Product preview"}
                   className="h-28 w-28 rounded-xl border border-white/10 object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
                   }}
-                  onLoad={(e) => {
-                    e.currentTarget.style.display = "block";
+                  onLoad={(event) => {
+                    event.currentTarget.style.display = "block";
                   }}
                 />
 
@@ -404,9 +456,8 @@ function EditProduct() {
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold">Packages / Variants</h2>
-
               <p className="mt-1 text-xs text-[#AAA3C1]">
-                Add different packages with independent prices and stock.
+                Manage each package's price, stock and SKU separately.
               </p>
             </div>
 
@@ -443,11 +494,11 @@ function EditProduct() {
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <label className={labelClass}>
-                    Package Name
+                    Package Name *
                     <input
                       value={variant.name}
-                      onChange={(e) =>
-                        handleVariantChange(index, "name", e.target.value)
+                      onChange={(event) =>
+                        handleVariantChange(index, "name", event.target.value)
                       }
                       placeholder="1 Month"
                       className={inputClass}
@@ -455,14 +506,14 @@ function EditProduct() {
                   </label>
 
                   <label className={labelClass}>
-                    Price (৳)
+                    Price (৳) *
                     <input
                       type="number"
                       min="0"
                       step="0.01"
                       value={variant.price}
-                      onChange={(e) =>
-                        handleVariantChange(index, "price", e.target.value)
+                      onChange={(event) =>
+                        handleVariantChange(index, "price", event.target.value)
                       }
                       placeholder="350"
                       className={inputClass}
@@ -474,9 +525,10 @@ function EditProduct() {
                     <input
                       type="number"
                       min="0"
+                      step="1"
                       value={variant.stock}
-                      onChange={(e) =>
-                        handleVariantChange(index, "stock", e.target.value)
+                      onChange={(event) =>
+                        handleVariantChange(index, "stock", event.target.value)
                       }
                       placeholder="10"
                       className={inputClass}
@@ -487,8 +539,8 @@ function EditProduct() {
                     SKU
                     <input
                       value={variant.sku}
-                      onChange={(e) =>
-                        handleVariantChange(index, "sku", e.target.value)
+                      onChange={(event) =>
+                        handleVariantChange(index, "sku", event.target.value)
                       }
                       placeholder="AIS-001"
                       className={inputClass}
@@ -536,7 +588,7 @@ function EditProduct() {
           </div>
         </section>
 
-        {/* Action Buttons */}
+        {/* Actions */}
         <div className="flex flex-wrap justify-end gap-3">
           <button
             type="button"

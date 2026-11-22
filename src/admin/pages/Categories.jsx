@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Plus,
   Search,
@@ -16,6 +16,35 @@ import toast from "react-hot-toast";
 import useCategoryStore from "../../store/useCategoryStore";
 import useProductStore from "../../store/useProductStore";
 
+const initialForm = {
+  name: "",
+  slug: "",
+  image: "",
+  status: "Active",
+};
+
+const createSlug = (value = "") =>
+  String(value)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const normalize = (value) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase();
+
+const getCategoryName = (category) => {
+  if (typeof category === "string") return category;
+
+  if (category && typeof category === "object") {
+    return category.name || category.title || category.slug || "";
+  }
+
+  return "";
+};
+
 function Categories() {
   const categories = useCategoryStore((state) => state.categories);
   const addCategory = useCategoryStore((state) => state.addCategory);
@@ -30,41 +59,53 @@ function Categories() {
   const safeCategories = Array.isArray(categories) ? categories : [];
   const safeProducts = Array.isArray(products) ? products : [];
 
-  const getProductCount = (categoryName) => {
-    return safeProducts.filter(
-      (product) =>
-        product.category?.trim().toLowerCase() ===
-        categoryName?.trim().toLowerCase(),
-    ).length;
-  };
-
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [formData, setFormData] = useState({ ...initialForm });
 
-  const [formData, setFormData] = useState({
-    name: "",
-    slug: "",
-    image: "",
-    status: "Active",
-  });
+  const getProductCount = (categoryName) =>
+    safeProducts.filter(
+      (product) =>
+        normalize(getCategoryName(product.category)) ===
+        normalize(categoryName),
+    ).length;
+
+  const activeCount = safeCategories.filter(
+    (category) => category.status === "Active",
+  ).length;
+
+  const inactiveCount = safeCategories.filter(
+    (category) => category.status === "Inactive",
+  ).length;
+
+  const filteredCategories = useMemo(() => {
+    const query = normalize(search);
+
+    return safeCategories.filter((category) =>
+      `${category.name || ""} ${category.slug || ""}`
+        .toLowerCase()
+        .includes(query),
+    );
+  }, [safeCategories, search]);
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingId(null);
+    setFormData({ ...initialForm });
+  };
 
   const openAddModal = () => {
     setEditingId(null);
-    setFormData({
-      name: "",
-      slug: "",
-      image: "",
-      status: "Active",
-    });
+    setFormData({ ...initialForm });
     setShowModal(true);
   };
 
   const openEditModal = (category) => {
     setEditingId(category.id);
     setFormData({
-      name: category.name,
-      slug: category.slug,
+      name: category.name || "",
+      slug: category.slug || "",
       image: category.image || "",
       status: category.status || "Active",
     });
@@ -75,19 +116,15 @@ function Categories() {
     setFormData((prev) => ({
       ...prev,
       name: value,
-      slug: value
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, ""),
+      slug: createSlug(value),
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = (event) => {
+    event.preventDefault();
 
     const name = formData.name.trim();
-    const slug = formData.slug.trim().toLowerCase();
+    const slug = createSlug(formData.slug);
 
     if (!name || !slug) {
       toast.error("Category name and slug are required");
@@ -97,8 +134,8 @@ function Categories() {
     const duplicate = safeCategories.some(
       (category) =>
         String(category.id) !== String(editingId) &&
-        (category.name.toLowerCase() === name.toLowerCase() ||
-          category.slug.toLowerCase() === slug),
+        (normalize(category.name) === normalize(name) ||
+          normalize(category.slug) === normalize(slug)),
     );
 
     if (duplicate) {
@@ -107,9 +144,10 @@ function Categories() {
     }
 
     const categoryData = {
-      ...formData,
       name,
       slug,
+      image: formData.image.trim(),
+      status: formData.status === "Inactive" ? "Inactive" : "Active",
     };
 
     if (editingId !== null) {
@@ -120,38 +158,44 @@ function Categories() {
       toast.success("Category added successfully");
     }
 
-    setShowModal(false);
+    closeModal();
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = (category) => {
+    const productCount = getProductCount(category.name);
+
+    if (productCount > 0) {
+      toast.error(
+        `Cannot delete: ${productCount} product(s) use this category. Reassign them first.`,
+        { duration: 4500 },
+      );
+      return;
+    }
+
     const confirmed = window.confirm(
-      "Are you sure you want to delete this category?",
+      `Are you sure you want to delete "${category.name}"?`,
     );
 
     if (!confirmed) return;
 
-    deleteCategory(id);
+    deleteCategory(category.id);
     toast.success("Category deleted successfully");
   };
 
-  const toggleStatus = (id) => {
-    toggleCategoryStatus(id);
+  const toggleStatus = (category) => {
+    const productCount = getProductCount(category.name);
+
+    if (category.status === "Active" && productCount > 0) {
+      const confirmed = window.confirm(
+        `${productCount} product(s) use this category. Making it inactive will hide it from active category selections. Continue?`,
+      );
+
+      if (!confirmed) return;
+    }
+
+    toggleCategoryStatus(category.id);
     toast.success("Category status updated");
   };
-
-  const filteredCategories = safeCategories.filter((category) =>
-    `${category.name} ${category.slug}`
-      .toLowerCase()
-      .includes(search.toLowerCase()),
-  );
-
-  const activeCount = safeCategories.filter(
-    (category) => category.status === "Active",
-  ).length;
-
-  const inactiveCount = safeCategories.filter(
-    (category) => category.status === "Inactive",
-  ).length;
 
   return (
     <div className="space-y-6">
@@ -165,6 +209,7 @@ function Categories() {
         </div>
 
         <button
+          type="button"
           onClick={openAddModal}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-purple-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-purple-700"
         >
@@ -205,10 +250,10 @@ function Categories() {
           size={18}
         />
         <input
-          type="text"
+          type="search"
           placeholder="Search categories..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(event) => setSearch(event.target.value)}
           className="w-full rounded-xl border border-white/10 bg-[#171326] py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-purple-500"
         />
       </div>
@@ -228,71 +273,87 @@ function Categories() {
             </thead>
 
             <tbody className="divide-y divide-white/10">
-              {filteredCategories.map((category) => (
-                <tr key={category.id} className="text-sm">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/5">
-                        {category.image ? (
-                          <img
-                            src={category.image}
-                            alt={category.name}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <ImageIcon className="text-purple-400" size={20} />
-                        )}
+              {filteredCategories.map((category) => {
+                const productCount = getProductCount(category.name);
+                const isActive = category.status === "Active";
+
+                return (
+                  <tr key={category.id} className="text-sm">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/5">
+                          {category.image ? (
+                            <img
+                              src={category.image}
+                              alt={category.name}
+                              className="h-full w-full object-cover"
+                              onError={(event) => {
+                                event.currentTarget.style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            <ImageIcon className="text-purple-400" size={20} />
+                          )}
+                        </div>
+
+                        <span className="font-medium text-white">
+                          {category.name}
+                        </span>
                       </div>
+                    </td>
 
-                      <span className="font-medium text-white">
-                        {category.name}
+                    <td className="px-5 py-4 text-[#AAA3C1]">
+                      {category.slug}
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-500/10 px-3 py-1 text-xs font-semibold text-purple-400">
+                        <Package size={13} />
+                        {productCount} Products
                       </span>
-                    </div>
-                  </td>
+                    </td>
 
-                  <td className="px-5 py-4 text-[#AAA3C1]">{category.slug}</td>
-
-                  <td className="px-5 py-4">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-500/10 px-3 py-1 text-xs font-semibold text-purple-400">
-                      <Package size={13} />
-                      {getProductCount(category.name)} Products
-                    </span>
-                  </td>
-
-                  <td className="px-5 py-4">
-                    <button
-                      onClick={() => toggleStatus(category.id)}
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                        category.status === "Active"
-                          ? "bg-green-500/10 text-green-400"
-                          : "bg-red-500/10 text-red-400"
-                      }`}
-                    >
-                      {category.status}
-                    </button>
-                  </td>
-
-                  <td className="px-5 py-4">
-                    <div className="flex justify-end gap-2">
+                    <td className="px-5 py-4">
                       <button
-                        onClick={() => openEditModal(category)}
-                        title="Edit"
-                        className="rounded-lg border border-white/10 p-2 text-blue-400 transition hover:bg-blue-500/10"
+                        type="button"
+                        onClick={() => toggleStatus(category)}
+                        aria-label={`Change ${category.name} status`}
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          isActive
+                            ? "bg-green-500/10 text-green-400"
+                            : "bg-red-500/10 text-red-400"
+                        }`}
                       >
-                        <Pencil size={16} />
+                        {isActive ? "Active" : "Inactive"}
                       </button>
+                    </td>
 
-                      <button
-                        onClick={() => handleDelete(category.id)}
-                        title="Delete"
-                        className="rounded-lg border border-white/10 p-2 text-red-400 transition hover:bg-red-500/10"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    <td className="px-5 py-4">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(category)}
+                          title="Edit"
+                          aria-label={`Edit ${category.name}`}
+                          className="rounded-lg border border-white/10 p-2 text-blue-400 transition hover:bg-blue-500/10"
+                        >
+                          <Pencil size={16} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(category)}
+                          title="Delete"
+                          aria-label={`Delete ${category.name}`}
+                          className="rounded-lg border border-white/10 p-2 text-red-400 transition hover:bg-red-500/10"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
 
               {filteredCategories.length === 0 && (
                 <tr>
@@ -311,15 +372,22 @@ function Categories() {
 
       {/* Add / Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#1B1730] p-6">
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center overflow-y-auto bg-black/70 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeModal();
+          }}
+        >
+          <div className="my-auto w-full max-w-lg rounded-2xl border border-white/10 bg-[#1B1730] p-6">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-xl font-bold text-white">
                 {editingId !== null ? "Edit Category" : "Add New Category"}
               </h2>
 
               <button
-                onClick={() => setShowModal(false)}
+                type="button"
+                onClick={closeModal}
+                aria-label="Close modal"
                 className="rounded-lg p-2 text-[#AAA3C1] hover:bg-white/10 hover:text-white"
               >
                 <X size={20} />
@@ -335,7 +403,7 @@ function Categories() {
                   type="text"
                   required
                   value={formData.name}
-                  onChange={(e) => handleNameChange(e.target.value)}
+                  onChange={(event) => handleNameChange(event.target.value)}
                   placeholder="e.g. Gaming"
                   className="w-full rounded-xl border border-white/10 bg-[#11101C] px-4 py-3 text-sm text-white outline-none focus:border-purple-500"
                 />
@@ -349,18 +417,18 @@ function Categories() {
                   type="text"
                   required
                   value={formData.slug}
-                  onChange={(e) =>
+                  onChange={(event) =>
                     setFormData((prev) => ({
                       ...prev,
-                      slug: e.target.value
-                        .toLowerCase()
-                        .trim()
-                        .replace(/[^a-z0-9-]/g, "-"),
+                      slug: createSlug(event.target.value),
                     }))
                   }
                   placeholder="e.g. gaming"
                   className="w-full rounded-xl border border-white/10 bg-[#11101C] px-4 py-3 text-sm text-white outline-none focus:border-purple-500"
                 />
+                <p className="mt-1 text-xs text-[#817995]">
+                  URL-friendly category identifier.
+                </p>
               </div>
 
               <div>
@@ -368,18 +436,34 @@ function Categories() {
                   Category Image URL
                 </label>
                 <input
-                  type="url"
+                  type="text"
                   value={formData.image}
-                  onChange={(e) =>
+                  onChange={(event) =>
                     setFormData((prev) => ({
                       ...prev,
-                      image: e.target.value,
+                      image: event.target.value,
                     }))
                   }
-                  placeholder="https://example.com/image.jpg"
+                  placeholder="/images/categories/gaming.png"
                   className="w-full rounded-xl border border-white/10 bg-[#11101C] px-4 py-3 text-sm text-white outline-none focus:border-purple-500"
                 />
               </div>
+
+              {formData.image.trim() && (
+                <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#11101C] p-3">
+                  <img
+                    src={formData.image}
+                    alt="Category preview"
+                    className="h-16 w-16 rounded-lg object-cover"
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
+                  />
+                  <span className="break-all text-xs text-[#AAA3C1]">
+                    {formData.image}
+                  </span>
+                </div>
+              )}
 
               <div>
                 <label className="mb-2 block text-sm text-[#AAA3C1]">
@@ -387,10 +471,10 @@ function Categories() {
                 </label>
                 <select
                   value={formData.status}
-                  onChange={(e) =>
+                  onChange={(event) =>
                     setFormData((prev) => ({
                       ...prev,
-                      status: e.target.value,
+                      status: event.target.value,
                     }))
                   }
                   className="w-full rounded-xl border border-white/10 bg-[#11101C] px-4 py-3 text-sm text-white outline-none focus:border-purple-500"
@@ -403,7 +487,7 @@ function Categories() {
               <div className="flex flex-col-reverse gap-3 pt-3 sm:flex-row sm:justify-end">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={closeModal}
                   className="rounded-xl border border-white/10 px-5 py-3 text-sm text-white hover:bg-white/5"
                 >
                   Cancel

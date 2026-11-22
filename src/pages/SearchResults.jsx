@@ -1,59 +1,106 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Search,
   PackageOpen,
   ArrowLeft,
   SlidersHorizontal,
+  X,
 } from "lucide-react";
+
 import ProductCard from "../components/products/ProductCard";
 import useProductStore from "../store/useProductStore";
 
+const normalize = (value) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase();
+
+const getCategoryName = (category) => {
+  if (typeof category === "string") return category;
+
+  if (category && typeof category === "object") {
+    return category.name || category.title || "";
+  }
+
+  return "";
+};
+
 const SearchResults = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialQuery = searchParams.get("q") || "";
 
-  const [search, setSearch] = useState(initialQuery);
+  const queryFromUrl = searchParams.get("q") || "";
+
+  const [search, setSearch] = useState(queryFromUrl);
   const [sortBy, setSortBy] = useState("featured");
 
-  // Get live products from Zustand store
   const products = useProductStore((state) => state.products);
 
+  // Keep search input synchronized with URL changes
+  useEffect(() => {
+    setSearch(queryFromUrl);
+  }, [queryFromUrl]);
+
   const filteredProducts = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query = normalize(queryFromUrl);
 
-    if (!query) return [];
+    if (!query || !Array.isArray(products)) {
+      return [];
+    }
 
-    // Hide inactive products
-    let result = products.filter((product) => {
-      if (product.status === "Inactive") return false;
+    const result = products.filter((product) => {
+      if (!product) return false;
 
-      return (
-        product.name?.toLowerCase().includes(query) ||
-        product.category?.toLowerCase().includes(query) ||
-        product.description?.toLowerCase().includes(query) ||
-        product.brand?.toLowerCase().includes(query)
-      );
+      // Hide inactive products
+      if (product.status && product.status !== "Active") {
+        return false;
+      }
+
+      const searchableFields = [
+        product.name,
+        product.brand,
+        getCategoryName(product.category),
+        product.description,
+        product.slug,
+      ];
+
+      return searchableFields.some((field) => normalize(field).includes(query));
     });
 
-    // Sorting
-    if (sortBy === "low-high") {
-      result.sort((a, b) => Number(a.price) - Number(b.price));
-    } else if (sortBy === "high-low") {
-      result.sort((a, b) => Number(b.price) - Number(a.price));
-    } else if (sortBy === "name") {
-      result.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    // Sort without mutating the original products array
+    switch (sortBy) {
+      case "low-high":
+        result.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+        break;
+
+      case "high-low":
+        result.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+        break;
+
+      case "name":
+        result.sort((a, b) =>
+          String(a.name || "").localeCompare(String(b.name || "")),
+        );
+        break;
+
+      default:
+        break;
     }
 
     return result;
-  }, [products, search, sortBy]);
+  }, [products, queryFromUrl, sortBy]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
+  const handleSearch = (event) => {
+    event.preventDefault();
 
     const query = search.trim();
 
     setSearchParams(query ? { q: query } : {});
+  };
+
+  const clearSearch = () => {
+    setSearch("");
+    setSearchParams({});
   };
 
   return (
@@ -61,10 +108,12 @@ const SearchResults = () => {
       <div className="mx-auto max-w-7xl">
         {/* Breadcrumb */}
         <div className="mb-6 flex items-center gap-2 text-sm text-[#AAA3C1]">
-          <Link to="/" className="hover:text-white">
+          <Link to="/" className="transition hover:text-white">
             Home
           </Link>
+
           <span>/</span>
+
           <span className="text-[#B99AFF]">Search Results</span>
         </div>
 
@@ -75,7 +124,7 @@ const SearchResults = () => {
           </h1>
 
           <p className="mt-2 text-sm text-[#AAA3C1]">
-            Find your favorite digital products at NEXORA.
+            Find your favorite digital products at AI-SaleBD.
           </p>
         </div>
 
@@ -93,10 +142,22 @@ const SearchResults = () => {
             <input
               type="search"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search products, categories..."
-              className="w-full rounded-xl border border-white/10 bg-[#211B3B] py-3.5 pl-11 pr-4 text-sm text-white outline-none placeholder:text-[#77718D] focus:border-[#8B5CF6]"
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search products, brands, categories..."
+              aria-label="Search products"
+              className="w-full rounded-xl border border-white/10 bg-[#211B3B] py-3.5 pl-11 pr-11 text-sm text-white outline-none placeholder:text-[#77718D] focus:border-[#8B5CF6]"
             />
+
+            {search && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                aria-label="Clear search"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#AAA3C1] transition hover:text-white"
+              >
+                <X size={17} />
+              </button>
+            )}
           </div>
 
           <button
@@ -108,13 +169,15 @@ const SearchResults = () => {
         </form>
 
         {/* Results Header */}
-        {search.trim() && (
+        {queryFromUrl.trim() && (
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="font-semibold text-white">Search Results</h2>
 
               <p className="mt-1 text-xs text-[#AAA3C1]">
-                {filteredProducts.length} products found for "{search}"
+                {filteredProducts.length}{" "}
+                {filteredProducts.length === 1 ? "product" : "products"} found
+                for "{queryFromUrl}"
               </p>
             </div>
 
@@ -123,8 +186,9 @@ const SearchResults = () => {
 
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="bg-transparent py-3 text-sm text-white outline-none"
+                onChange={(event) => setSortBy(event.target.value)}
+                aria-label="Sort search results"
+                className="max-w-[190px] bg-transparent py-3 text-sm text-white outline-none"
               >
                 <option value="featured" className="bg-[#211B3B]">
                   Featured
@@ -158,11 +222,11 @@ const SearchResults = () => {
             <PackageOpen size={48} className="mx-auto mb-4 text-[#8B5CF6]" />
 
             <h3 className="text-lg font-bold text-white">
-              {search.trim() ? "No Products Found" : "Start Searching"}
+              {queryFromUrl.trim() ? "No Products Found" : "Start Searching"}
             </h3>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#AAA3C1]">
-              {search.trim()
+              {queryFromUrl.trim()
                 ? "We couldn't find any products matching your search. Try another keyword."
                 : "Enter a product name or category in the search box to discover digital products."}
             </p>

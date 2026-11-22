@@ -19,31 +19,41 @@ const initialVariant = {
   sku: "",
 };
 
+const initialForm = {
+  name: "",
+  category: "",
+  brand: "",
+  image: "",
+  description: "",
+  price: "",
+  oldPrice: "",
+  badge: "",
+  status: "Active",
+  deliveryType: "Manual",
+  variants: [{ ...initialVariant }],
+};
+
+const createSlug = (value) =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
 function AddProduct() {
   const navigate = useNavigate();
 
   const addProduct = useProductStore((state) => state.addProduct);
   const categories = useCategoryStore((state) => state.categories);
 
-  const activeCategories = Array.isArray(categories)
-    ? categories.filter((category) => category.status === "Active")
-    : [];
+  const safeCategories = Array.isArray(categories) ? categories : [];
+
+  const activeCategories = safeCategories.filter(
+    (category) => category.status === "Active" && category.name,
+  );
 
   const [isSaving, setIsSaving] = useState(false);
-
-  const [form, setForm] = useState({
-    name: "",
-    category: "",
-    brand: "",
-    image: "",
-    description: "",
-    price: "",
-    oldPrice: "",
-    badge: "",
-    status: "Active",
-    deliveryType: "Manual",
-    variants: [{ ...initialVariant }],
-  });
+  const [form, setForm] = useState(initialForm);
 
   const inputClass =
     "mt-2 w-full rounded-xl border border-white/10 bg-[#171326] px-4 py-3 text-sm text-white outline-none transition focus:border-purple-500";
@@ -51,8 +61,8 @@ function AddProduct() {
   const labelClass = "text-sm font-medium text-[#AAA3C1]";
 
   // Handle Input Change
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const handleChange = (event) => {
+    const { name, value } = event.target;
 
     setForm((prev) => ({
       ...prev,
@@ -87,8 +97,8 @@ function AddProduct() {
   };
 
   // Submit Product
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = (event) => {
+    event.preventDefault();
 
     if (isSaving) return;
 
@@ -97,13 +107,16 @@ function AddProduct() {
       return;
     }
 
-    if (Number(form.price) < 0) {
-      toast.error("Price cannot be negative");
+    const productPrice = Number(form.price);
+    const oldPrice = form.oldPrice === "" ? null : Number(form.oldPrice);
+
+    if (!Number.isFinite(productPrice) || productPrice < 0) {
+      toast.error("Please enter a valid Product Price");
       return;
     }
 
-    if (form.oldPrice !== "" && Number(form.oldPrice) < 0) {
-      toast.error("Old Price cannot be negative");
+    if (oldPrice !== null && (!Number.isFinite(oldPrice) || oldPrice < 0)) {
+      toast.error("Please enter a valid Old Price");
       return;
     }
 
@@ -117,36 +130,73 @@ function AddProduct() {
       return;
     }
 
-    // Prepare Variants
-    const validVariants = form.variants
-      .filter((variant) => variant.name.trim() !== "" && variant.price !== "")
-      .map((variant) => ({
-        ...variant,
-        name: variant.name.trim(),
-        price: Number(variant.price),
-        stock: Number(variant.stock || 0),
-        sku: variant.sku.trim(),
-      }));
+    // Validate and prepare variants
+    const validVariants = [];
 
-    // Generate Slug
-    const slug = form.name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
+    for (let index = 0; index < form.variants.length; index += 1) {
+      const variant = form.variants[index];
+
+      const hasName = variant.name.trim() !== "";
+      const hasPrice = variant.price !== "";
+      const hasAnyValue =
+        hasName ||
+        hasPrice ||
+        String(variant.stock).trim() !== "" ||
+        variant.sku.trim() !== "";
+
+      // Ignore completely empty variant rows
+      if (!hasAnyValue) continue;
+
+      if (!hasName || !hasPrice) {
+        toast.error(
+          `Variant ${index + 1}: Package Name and Price are required`,
+        );
+        return;
+      }
+
+      const variantPrice = Number(variant.price);
+      const variantStock = variant.stock === "" ? 0 : Number(variant.stock);
+
+      if (!Number.isFinite(variantPrice) || variantPrice < 0) {
+        toast.error(`Variant ${index + 1}: Invalid price`);
+        return;
+      }
+
+      if (!Number.isInteger(variantStock) || variantStock < 0) {
+        toast.error(
+          `Variant ${index + 1}: Stock must be a non-negative whole number`,
+        );
+        return;
+      }
+
+      validVariants.push({
+        name: variant.name.trim(),
+        price: variantPrice,
+        stock: variantStock,
+        sku: variant.sku.trim(),
+      });
+    }
+
+    // Generate product slug
+    const slug = createSlug(form.name);
+
+    if (!slug) {
+      toast.error("Please enter a valid English product name for the URL");
+      return;
+    }
 
     const newProduct = {
       ...form,
       name: form.name.trim(),
+      category: selectedCategory.name,
       brand: form.brand.trim(),
       image: form.image.trim(),
       description: form.description.trim(),
       slug,
-      price: Number(form.price),
-      oldPrice: form.oldPrice !== "" ? Number(form.oldPrice) : null,
+      price: productPrice,
+      oldPrice,
       variants: validVariants,
-      path: `/category/${selectedCategory.slug}`,
-      category: selectedCategory.name,
+      path: `/category/${selectedCategory.slug || createSlug(selectedCategory.name)}`,
       status: form.status,
       deliveryType: form.deliveryType,
     };
@@ -154,7 +204,6 @@ function AddProduct() {
     try {
       setIsSaving(true);
 
-      // Store automatically generates Product ID
       addProduct(newProduct);
 
       toast.success("Product added successfully!");
@@ -169,23 +218,21 @@ function AddProduct() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <button
-            type="button"
-            onClick={() => navigate("/admin/products")}
-            className="mb-3 flex items-center gap-2 text-sm text-[#AAA3C1] hover:text-white"
-          >
-            <ArrowLeft size={17} />
-            Back to Products
-          </button>
+      <div>
+        <button
+          type="button"
+          onClick={() => navigate("/admin/products")}
+          className="mb-3 flex items-center gap-2 text-sm text-[#AAA3C1] hover:text-white"
+        >
+          <ArrowLeft size={17} />
+          Back to Products
+        </button>
 
-          <h1 className="text-2xl font-bold">Add New Product</h1>
+        <h1 className="text-2xl font-bold">Add New Product</h1>
 
-          <p className="mt-1 text-sm text-[#AAA3C1]">
-            Add a new product to your AI-SaleBD marketplace.
-          </p>
-        </div>
+        <p className="mt-1 text-sm text-[#AAA3C1]">
+          Add a new product to your AI-SaleBD marketplace.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -194,7 +241,6 @@ function AddProduct() {
           <h2 className="mb-5 text-lg font-semibold">Basic Information</h2>
 
           <div className="grid gap-5 sm:grid-cols-2">
-            {/* Product Name */}
             <label className={labelClass}>
               Product Name *
               <input
@@ -207,7 +253,6 @@ function AddProduct() {
               />
             </label>
 
-            {/* Category */}
             <label className={labelClass}>
               Category *
               <select
@@ -232,7 +277,6 @@ function AddProduct() {
               )}
             </label>
 
-            {/* Brand */}
             <label className={labelClass}>
               Brand
               <input
@@ -244,7 +288,6 @@ function AddProduct() {
               />
             </label>
 
-            {/* Product Image */}
             <label className={labelClass}>
               Product Image URL
               <input
@@ -285,11 +328,11 @@ function AddProduct() {
                   src={form.image}
                   alt={form.name || "Product preview"}
                   className="h-28 w-28 rounded-xl border border-white/10 object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
                   }}
-                  onLoad={(e) => {
-                    e.currentTarget.style.display = "block";
+                  onLoad={(event) => {
+                    event.currentTarget.style.display = "block";
                   }}
                 />
 
@@ -347,7 +390,6 @@ function AddProduct() {
             </label>
           </div>
 
-          {/* Product Badge */}
           <label className={`${labelClass} mt-5 block`}>
             Product Badge
             <select
@@ -412,8 +454,8 @@ function AddProduct() {
                     Package Name
                     <input
                       value={variant.name}
-                      onChange={(e) =>
-                        handleVariantChange(index, "name", e.target.value)
+                      onChange={(event) =>
+                        handleVariantChange(index, "name", event.target.value)
                       }
                       placeholder="1 Month"
                       className={inputClass}
@@ -427,8 +469,8 @@ function AddProduct() {
                       min="0"
                       step="0.01"
                       value={variant.price}
-                      onChange={(e) =>
-                        handleVariantChange(index, "price", e.target.value)
+                      onChange={(event) =>
+                        handleVariantChange(index, "price", event.target.value)
                       }
                       placeholder="350"
                       className={inputClass}
@@ -440,9 +482,10 @@ function AddProduct() {
                     <input
                       type="number"
                       min="0"
+                      step="1"
                       value={variant.stock}
-                      onChange={(e) =>
-                        handleVariantChange(index, "stock", e.target.value)
+                      onChange={(event) =>
+                        handleVariantChange(index, "stock", event.target.value)
                       }
                       placeholder="10"
                       className={inputClass}
@@ -453,8 +496,8 @@ function AddProduct() {
                     SKU
                     <input
                       value={variant.sku}
-                      onChange={(e) =>
-                        handleVariantChange(index, "sku", e.target.value)
+                      onChange={(event) =>
+                        handleVariantChange(index, "sku", event.target.value)
                       }
                       placeholder="AIS-001"
                       className={inputClass}

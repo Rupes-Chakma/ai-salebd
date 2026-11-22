@@ -1,14 +1,16 @@
 import { Bell, Menu, Search, UserCircle } from "lucide-react";
 
-function AdminHeader() {
+function AdminHeader({ onMenuClick }) {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-white/10 bg-[#171326]/95 px-4 backdrop-blur sm:px-6">
       {/* Left */}
       <div className="flex items-center gap-3">
         <button
           type="button"
-          className="rounded-lg p-2 text-[#AAA3C1] hover:bg-white/10 lg:hidden"
+          onClick={onMenuClick}
+          className="rounded-lg p-2 text-[#AAA3C1] transition hover:bg-white/10 lg:hidden"
           aria-label="Open menu"
+          aria-expanded="false"
         >
           <Menu size={22} />
         </button>
@@ -22,7 +24,7 @@ function AdminHeader() {
           />
         </div>
 
-        <h1 className="text-sm font-semibold sm:hidden">NEXORA Admin</h1>
+        <h1 className="text-sm font-semibold sm:hidden">AI-SaleBD Admin</h1>
       </div>
 
       {/* Right */}
