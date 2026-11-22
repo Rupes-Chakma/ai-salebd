@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -24,6 +24,8 @@ import CategorySection from "../components/home/CategorySection";
 import useProductStore from "../store/useProductStore";
 
 const WHATSAPP_NUMBER = "8801648582639";
+const SLIDE_INTERVAL = 4500;
+const SWIPE_THRESHOLD = 45;
 
 const benefits = [
   { icon: Zap, title: "Fast Delivery", description: "Quick order processing" },
@@ -92,14 +94,12 @@ function Home() {
   const navigate = useNavigate();
   const products = useProductStore((state) => state.products);
 
-  // সব Active Product Slider-এ দেখানো হবে
-  const sliderProducts = Array.isArray(products)
-    ? products.filter((product) => product && product.status === "Active")
-    : [];
-
+  // সব Active Product Hero Slider-এ দেখানো হবে
   const activeProducts = Array.isArray(products)
     ? products.filter((product) => product && product.status === "Active")
     : [];
+
+  const sliderProducts = activeProducts;
 
   const bestSellerProducts = activeProducts
     .filter(
@@ -110,39 +110,133 @@ function Home() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [openFaq, setOpenFaq] = useState(0);
 
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const mouseStartX = useRef(0);
+  const isDragging = useRef(false);
+  const didSwipe = useRef(false);
+  const autoSlideTimer = useRef(null);
+  const [isPaused, setIsPaused] = useState(false);
+
   const safeActiveSlide =
     sliderProducts.length > 0 ? activeSlide % sliderProducts.length : 0;
 
   const currentProduct = sliderProducts[safeActiveSlide];
 
-  // Product list পরিবর্তন হলে slide index ঠিক রাখা
-  useEffect(() => {
-    setActiveSlide(0);
-  }, [sliderProducts.length]);
-
-  // Automatic slider
-  useEffect(() => {
-    if (sliderProducts.length <= 1) return;
-
-    const timer = setInterval(() => {
-      setActiveSlide((current) => (current + 1) % sliderProducts.length);
-    }, 4500);
-
-    return () => clearInterval(timer);
-  }, [sliderProducts.length]);
-
-  const nextSlide = () => {
+  const nextSlide = useCallback(() => {
     if (sliderProducts.length > 1) {
       setActiveSlide((current) => (current + 1) % sliderProducts.length);
     }
-  };
+  }, [sliderProducts.length]);
 
-  const previousSlide = () => {
+  const previousSlide = useCallback(() => {
     if (sliderProducts.length > 1) {
       setActiveSlide(
         (current) =>
           (current - 1 + sliderProducts.length) % sliderProducts.length,
       );
+    }
+  }, [sliderProducts.length]);
+
+  const goToSlide = (index) => {
+    setActiveSlide(index);
+  };
+
+  // Product count পরিবর্তন হলে index reset
+  useEffect(() => {
+    setActiveSlide(0);
+  }, [sliderProducts.length]);
+
+  // Auto Slide
+  useEffect(() => {
+    if (sliderProducts.length <= 1 || isPaused) return;
+
+    autoSlideTimer.current = setInterval(() => {
+      setActiveSlide((current) => (current + 1) % sliderProducts.length);
+    }, SLIDE_INTERVAL);
+
+    return () => {
+      clearInterval(autoSlideTimer.current);
+    };
+  }, [sliderProducts.length, isPaused, activeSlide]);
+
+  // Mobile Touch Swipe
+  const handleTouchStart = (event) => {
+    touchStartX.current = event.touches[0].clientX;
+    touchStartY.current = event.touches[0].clientY;
+    setIsPaused(true);
+  };
+
+  const handleTouchEnd = (event) => {
+    const endX = event.changedTouches[0].clientX;
+    const endY = event.changedTouches[0].clientY;
+
+    const diffX = touchStartX.current - endX;
+    const diffY = touchStartY.current - endY;
+
+    if (
+      Math.abs(diffX) > SWIPE_THRESHOLD &&
+      Math.abs(diffX) > Math.abs(diffY)
+    ) {
+      didSwipe.current = true;
+
+      if (diffX > 0) {
+        nextSlide();
+      } else {
+        previousSlide();
+      }
+
+      setTimeout(() => {
+        didSwipe.current = false;
+      }, 300);
+    }
+
+    setIsPaused(false);
+  };
+
+  // Desktop Mouse Drag
+  const handleMouseDown = (event) => {
+    if (event.button !== 0) return;
+
+    mouseStartX.current = event.clientX;
+    isDragging.current = true;
+    setIsPaused(true);
+  };
+
+  const handleMouseUp = (event) => {
+    if (!isDragging.current) return;
+
+    const distance = mouseStartX.current - event.clientX;
+
+    if (Math.abs(distance) > SWIPE_THRESHOLD) {
+      didSwipe.current = true;
+
+      if (distance > 0) {
+        nextSlide();
+      } else {
+        previousSlide();
+      }
+
+      setTimeout(() => {
+        didSwipe.current = false;
+      }, 300);
+    }
+
+    isDragging.current = false;
+    setIsPaused(false);
+  };
+
+  const handleMouseLeave = () => {
+    if (isDragging.current) {
+      isDragging.current = false;
+      setIsPaused(false);
+    }
+  };
+
+  const handleSlideClick = (event) => {
+    if (didSwipe.current) {
+      event.preventDefault();
+      event.stopPropagation();
     }
   };
 
@@ -165,41 +259,51 @@ function Home() {
   return (
     <div className="overflow-x-clip">
       {/* HERO SLIDER */}
-      <section className="relative pt-3 pb-4 sm:pt-6 sm:pb-7">
+      <section className="relative pt-2 pb-3 sm:pt-6 sm:pb-7">
         <div className="container-custom">
           {currentProduct ? (
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#211B3B] shadow-xl shadow-purple-950/20 sm:rounded-3xl">
+            <div
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+              onMouseDown={handleMouseDown}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseLeave}
+              className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#211B3B] shadow-xl shadow-purple-950/20 touch-pan-y select-none sm:rounded-3xl"
+            >
               <div className="pointer-events-none absolute -left-20 -top-24 h-52 w-52 rounded-full bg-purple-600/20 blur-[80px]" />
               <div className="pointer-events-none absolute -bottom-24 right-0 h-56 w-56 rounded-full bg-blue-500/15 blur-[85px]" />
 
               <Link
                 to={`/product/${currentProduct.id}`}
                 key={currentProduct.id}
-                className="group relative grid min-h-[190px] grid-cols-[1.15fr_0.85fr] items-center gap-1 px-4 py-5 sm:min-h-[270px] sm:grid-cols-2 sm:gap-6 sm:px-10 sm:py-8 lg:min-h-[340px] lg:px-16 lg:py-10"
+                onClick={handleSlideClick}
+                draggable={false}
+                className="group relative grid min-h-[270px] grid-cols-1 items-center gap-3 px-5 pb-8 pt-5 sm:min-h-[270px] sm:grid-cols-2 sm:gap-6 sm:px-10 sm:py-8 lg:min-h-[340px] lg:px-16 lg:py-10"
               >
-                <div className="relative z-10 min-w-0">
-                  <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-purple-400/20 bg-purple-500/10 px-2 py-1 text-[8px] font-bold tracking-wider text-[#C4A7FF] sm:mb-4 sm:px-3 sm:py-1.5 sm:text-[10px]">
-                    <Sparkles size={11} />
+                {/* PRODUCT DETAILS */}
+                <div className="relative z-10 order-2 min-w-0 text-center sm:order-1 sm:text-left">
+                  <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-purple-400/20 bg-purple-500/10 px-2.5 py-1.5 text-[9px] font-bold tracking-wider text-[#C4A7FF] sm:mb-4 sm:px-3 sm:text-[10px]">
+                    <Sparkles size={12} />
                     FEATURED PRODUCT
                   </div>
 
                   {currentProduct.badge && (
-                    <div className="mb-2 text-[9px] font-bold text-[#B99AFF] sm:mb-3 sm:text-xs">
+                    <div className="mb-2 text-[10px] font-bold text-[#B99AFF] sm:mb-3 sm:text-xs">
                       {currentProduct.badge}
                     </div>
                   )}
 
-                  <h1 className="line-clamp-2 max-w-[420px] text-lg font-extrabold leading-tight text-white sm:text-3xl lg:text-5xl">
+                  <h1 className="mx-auto line-clamp-2 max-w-[420px] text-xl font-extrabold leading-tight text-white sm:mx-0 sm:text-3xl lg:text-5xl">
                     {currentProduct.name}
                   </h1>
 
-                  <p className="mt-1.5 line-clamp-2 max-w-sm text-[9px] leading-4 text-[#B9B2CE] sm:mt-3 sm:text-sm sm:leading-6">
+                  <p className="mx-auto mt-2 line-clamp-2 max-w-sm text-[11px] leading-5 text-[#B9B2CE] sm:mx-0 sm:mt-3 sm:text-sm sm:leading-6">
                     {currentProduct.description ||
                       "Discover premium digital products at AI-SaleBD."}
                   </p>
 
-                  <div className="mt-2 flex flex-wrap items-center gap-2 sm:mt-5 sm:gap-3">
-                    <span className="text-lg font-extrabold text-white sm:text-2xl lg:text-3xl">
+                  <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:mt-5 sm:justify-start sm:gap-3">
+                    <span className="text-xl font-extrabold text-white sm:text-2xl lg:text-3xl">
                       ৳
                       {Number(currentProduct.price || 0).toLocaleString(
                         "en-BD",
@@ -209,7 +313,7 @@ function Home() {
                     {currentProduct.oldPrice &&
                       Number(currentProduct.oldPrice) >
                         Number(currentProduct.price) && (
-                        <span className="text-[10px] text-[#AAA3C1] line-through sm:text-sm">
+                        <span className="text-xs text-[#AAA3C1] line-through sm:text-sm">
                           ৳
                           {Number(currentProduct.oldPrice).toLocaleString(
                             "en-BD",
@@ -218,86 +322,92 @@ function Home() {
                       )}
                   </div>
 
-                  <span className="mt-3 inline-flex min-h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#4F46E5] px-3 py-2 text-[10px] font-bold text-white shadow-lg shadow-purple-950/30 transition group-hover:brightness-110 sm:mt-5 sm:min-h-11 sm:gap-2 sm:rounded-xl sm:px-5 sm:text-sm">
-                    <ShoppingBag size={13} />
+                  <span className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#4F46E5] px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-purple-950/30 transition group-hover:brightness-110 sm:mt-5 sm:min-h-11 sm:px-5 sm:text-sm">
+                    <ShoppingBag size={14} />
                     Shop Now
                     <ArrowRight
-                      size={13}
+                      size={14}
                       className="transition-transform group-hover:translate-x-1"
                     />
                   </span>
                 </div>
 
-                <div className="relative flex h-[135px] min-w-0 items-center justify-center sm:h-[220px] lg:h-[270px]">
+                {/* PRODUCT IMAGE */}
+                <div className="relative order-1 flex h-[145px] min-w-0 items-center justify-center sm:order-2 sm:h-[220px] lg:h-[270px]">
                   <div className="absolute inset-4 rounded-full bg-purple-500/20 blur-[45px] sm:inset-8 sm:blur-[65px]" />
 
-                  <div className="relative flex h-full w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] p-2 sm:rounded-2xl sm:p-5">
+                  <div className="relative flex h-full w-full max-w-[220px] items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] p-3 sm:max-w-none sm:rounded-2xl sm:p-5">
                     {currentProduct.image ? (
                       <img
                         src={currentProduct.image}
                         alt={currentProduct.name}
+                        draggable={false}
                         className="h-full w-full object-contain transition duration-500 group-hover:scale-105"
                       />
                     ) : (
                       <div className="flex flex-col items-center gap-2 text-[#AAA3C1]">
                         <ImageOff size={30} />
-                        <span className="text-[9px] sm:text-xs">No Image</span>
+                        <span className="text-xs">No Image</span>
                       </div>
                     )}
                   </div>
                 </div>
               </Link>
 
+              {/* PREVIOUS / NEXT */}
               {sliderProducts.length > 1 && (
                 <>
                   <button
                     type="button"
                     onClick={previousSlide}
                     aria-label="Previous slide"
-                    className="absolute left-1 top-1/2 z-20 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#171326]/80 text-white backdrop-blur transition hover:bg-purple-600 sm:left-3 sm:h-10 sm:w-10"
+                    className="absolute left-2 top-[26%] z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#171326]/80 text-white backdrop-blur transition hover:bg-purple-600 sm:left-3 sm:top-1/2 sm:h-10 sm:w-10"
                   >
-                    <ChevronLeft size={17} />
+                    <ChevronLeft size={19} />
                   </button>
 
                   <button
                     type="button"
                     onClick={nextSlide}
                     aria-label="Next slide"
-                    className="absolute right-1 top-1/2 z-20 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#171326]/80 text-white backdrop-blur transition hover:bg-purple-600 sm:right-3 sm:h-10 sm:w-10"
+                    className="absolute right-2 top-[26%] z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#171326]/80 text-white backdrop-blur transition hover:bg-purple-600 sm:right-3 sm:top-1/2 sm:h-10 sm:w-10"
                   >
-                    <ChevronRight size={17} />
+                    <ChevronRight size={19} />
                   </button>
 
-                  <div className="absolute bottom-2 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 sm:bottom-4 sm:gap-2">
+                  {/* DOTS */}
+                  <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 sm:bottom-4 sm:gap-2">
                     {sliderProducts.map((product, index) => (
                       <button
                         key={product.id}
                         type="button"
-                        onClick={() => setActiveSlide(index)}
+                        onClick={() => goToSlide(index)}
                         aria-label={`Go to slide ${index + 1}`}
-                        className={`h-1.5 rounded-full transition-all sm:h-2 ${
+                        aria-current={
+                          safeActiveSlide === index ? "true" : undefined
+                        }
+                        className={`h-2 rounded-full transition-all duration-300 ${
                           safeActiveSlide === index
-                            ? "w-5 bg-[#C4A7FF] sm:w-7"
-                            : "w-1.5 bg-white/40 sm:w-2"
+                            ? "w-6 bg-[#C4A7FF] sm:w-7"
+                            : "w-2 bg-white/40 hover:bg-white/70"
                         }`}
                       />
                     ))}
                   </div>
-                </>
-              )}
 
-              {sliderProducts.length > 1 && (
-                <div className="absolute right-3 top-3 z-10 rounded-full border border-white/10 bg-[#171326]/70 px-2 py-1 text-[8px] font-semibold text-white backdrop-blur sm:right-5 sm:top-5 sm:px-3 sm:text-[10px]">
-                  {safeActiveSlide + 1} / {sliderProducts.length}
-                </div>
+                  {/* SLIDE COUNTER */}
+                  <div className="absolute right-3 top-3 z-10 rounded-full border border-white/10 bg-[#171326]/70 px-2.5 py-1 text-[9px] font-semibold text-white backdrop-blur sm:right-5 sm:top-5 sm:px-3 sm:text-[10px]">
+                    {safeActiveSlide + 1} / {sliderProducts.length}
+                  </div>
+                </>
               )}
             </div>
           ) : (
-            <div className="relative flex min-h-[190px] items-center justify-between overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-[#29194C] via-[#211B3B] to-[#17243E] px-5 py-6 sm:min-h-[270px] sm:rounded-3xl sm:px-10 lg:min-h-[320px] lg:px-16">
+            <div className="relative flex min-h-[230px] items-center justify-between overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-[#29194C] via-[#211B3B] to-[#17243E] px-5 py-7 sm:min-h-[270px] sm:rounded-3xl sm:px-10 lg:min-h-[320px] lg:px-16">
               <div className="pointer-events-none absolute -left-16 -top-20 h-52 w-52 rounded-full bg-purple-500/20 blur-[80px]" />
 
               <div className="relative z-10 max-w-lg">
-                <div className="mb-3 inline-flex items-center gap-1.5 text-[9px] font-bold tracking-wider text-[#C4A7FF] sm:text-xs">
+                <div className="mb-3 inline-flex items-center gap-1.5 text-[10px] font-bold tracking-wider text-[#C4A7FF] sm:text-xs">
                   <Sparkles size={14} />
                   WELCOME TO AI-SALEBD
                 </div>
@@ -306,13 +416,13 @@ function Home() {
                   Your Digital Marketplace
                 </h1>
 
-                <p className="mt-2 max-w-sm text-[10px] leading-5 text-[#B9B2CE] sm:mt-3 sm:text-sm sm:leading-6">
+                <p className="mt-2 max-w-sm text-xs leading-5 text-[#B9B2CE] sm:mt-3 sm:text-sm sm:leading-6">
                   Discover AI tools, premium subscriptions and digital products.
                 </p>
 
                 <Link
                   to="/shop"
-                  className="mt-4 inline-flex min-h-9 items-center gap-2 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#4F46E5] px-4 py-2 text-xs font-bold text-white transition hover:brightness-110 sm:mt-5 sm:min-h-11 sm:rounded-xl sm:px-5 sm:text-sm"
+                  className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#4F46E5] px-4 py-2.5 text-xs font-bold text-white transition hover:brightness-110 sm:mt-5 sm:min-h-11 sm:px-5 sm:text-sm"
                 >
                   Browse Products
                   <ArrowRight size={15} />
@@ -432,6 +542,7 @@ function Home() {
                     POPULAR
                   </span>
                 </div>
+
                 <div className="p-3 sm:p-4">
                   <h3 className="line-clamp-2 min-h-9 text-xs font-bold text-white transition group-hover:text-[#C4A7FF] sm:min-h-10 sm:text-sm">
                     {product.name}
