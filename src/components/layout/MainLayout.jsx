@@ -26,9 +26,7 @@ const FloatingActions = () => {
 
   const handleWhatsApp = () => {
     const message = "Hello AI-SaleBD! I need some help.";
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-      message,
-    )}`;
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 
     window.open(url, "_blank", "noopener,noreferrer");
   };
@@ -49,9 +47,7 @@ const FloatingActions = () => {
         md:bottom-6 md:right-6
       "
     >
-      {/* WhatsApp Support */}
       <div className="group pointer-events-auto relative flex flex-col items-end">
-        {/* Support Card */}
         <div
           className={`
             absolute bottom-full right-0 mb-3
@@ -60,13 +56,11 @@ const FloatingActions = () => {
             border border-white/10 bg-[#211B3B] p-4
             shadow-2xl shadow-black/40
             transition-all duration-300 ease-out
-
             ${
               mobileOpen
                 ? "visible translate-y-0 opacity-100 pointer-events-auto"
                 : "invisible translate-y-2 opacity-0 pointer-events-none"
             }
-
             md:invisible md:translate-y-2 md:opacity-0
             md:pointer-events-none
             md:group-hover:visible md:group-hover:translate-y-0
@@ -80,7 +74,6 @@ const FloatingActions = () => {
 
             <div className="flex-1">
               <p className="text-sm font-bold text-white">Need Help?</p>
-
               <p className="mt-1 text-xs text-[#AAA3C1]">
                 We're here to help you!
               </p>
@@ -108,9 +101,7 @@ const FloatingActions = () => {
           </button>
         </div>
 
-        {/* Floating WhatsApp Buttons */}
         <div className="flex items-center gap-2">
-          {/* Mobile Support Toggle */}
           <button
             type="button"
             onClick={() => setMobileOpen((prev) => !prev)}
@@ -126,7 +117,6 @@ const FloatingActions = () => {
             />
           </button>
 
-          {/* WhatsApp Button */}
           <button
             type="button"
             onClick={handleWhatsApp}
@@ -145,7 +135,6 @@ const FloatingActions = () => {
         </div>
       </div>
 
-      {/* Back To Top */}
       <button
         type="button"
         onClick={handleBackToTop}
@@ -176,7 +165,7 @@ const MainLayout = ({ children }) => {
     <div className="flex min-h-screen min-w-0 flex-col bg-[#11101C]">
       <Header />
 
-      <main className="min-w-0 w-full flex-1 pb-32 md:pb-0">{children}</main>
+      <main className="min-w-0 w-full flex-1">{children}</main>
 
       <Footer />
 

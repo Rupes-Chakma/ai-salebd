@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -17,21 +17,24 @@ import {
   BriefcaseBusiness,
   Pencil,
   MapPinned,
+  MessageCircle,
+  Trash2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
 import useCartStore from "../store/cartStore";
 import useProductStore from "../store/useProductStore";
 
+const WHATSAPP_NUMBER = "8801648582639";
+
+const ADDRESS_KEY = "nexora-addresses";
+const DEFAULT_ADDRESS_KEY = "nexora-default-address";
+
 const paymentMethods = [
   { id: "bKash", name: "bKash", color: "border-pink-500" },
   { id: "Nagad", name: "Nagad", color: "border-orange-500" },
   { id: "Rocket", name: "Rocket", color: "border-purple-500" },
 ];
-
-const ADDRESS_KEY = "nexora-addresses";
-const DEFAULT_ADDRESS_KEY = "nexora-default-address";
-const ORDER_KEY = "nexora-orders";
 
 const emptyAddress = {
   fullName: "",
@@ -43,6 +46,12 @@ const emptyAddress = {
 };
 
 const formatPrice = (price) => `৳${Number(price || 0).toLocaleString("en-BD")}`;
+
+const safeQuantity = (value) => {
+  const quantity = Math.floor(Number(value));
+
+  return Number.isFinite(quantity) ? Math.max(1, Math.min(99, quantity)) : 1;
+};
 
 const normalizePhone = (value) => {
   let phone = String(value || "").replace(/\D/g, "");
@@ -65,14 +74,20 @@ const getSavedAddresses = () => {
   }
 };
 
-const Checkout = () => {
-  const navigate = useNavigate();
+const getCategoryName = (category) => {
+  if (!category) return "Digital Product";
 
+  if (typeof category === "string") return category;
+
+  return category.name || category.title || category.slug || "Digital Product";
+};
+
+function Checkout() {
   const cartItems = useCartStore((state) => state.cartItems);
-  const getCartTotal = useCartStore((state) => state.getCartTotal);
-  const clearCart = useCartStore((state) => state.clearCart);
-
   const products = useProductStore((state) => state.products);
+
+  const safeCartItems = Array.isArray(cartItems) ? cartItems : [];
+  const safeProducts = Array.isArray(products) ? products : [];
 
   const [addresses, setAddresses] = useState(getSavedAddresses);
 
@@ -98,8 +113,6 @@ const Checkout = () => {
     return selected?.fullName || "";
   });
 
-  const [email, setEmail] = useState("");
-
   const [phone, setPhone] = useState(() => {
     const saved = getSavedAddresses();
     const defaultId = localStorage.getItem(DEFAULT_ADDRESS_KEY);
@@ -108,31 +121,130 @@ const Checkout = () => {
     return normalizePhone(selected?.phone || "");
   });
 
+  const [email, setEmail] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("bKash");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const total = getCartTotal();
-
-  const totalQuantity = cartItems.reduce(
-    (sum, item) => sum + Number(item.quantity || 0),
-    0,
-  );
-
-  // Check current product availability from Zustand store.
-  const unavailableItems = cartItems.filter((item) => {
-    const product = products.find(
-      (product) => String(product.id) === String(item.productId),
-    );
-
-    return !product || product.status === "Inactive";
-  });
-
-  const hasUnavailableItems = unavailableItems.length > 0;
+  const [isOpeningWhatsApp, setIsOpeningWhatsApp] = useState(false);
 
   const selectedAddress = addresses.find(
     (item) => item.id === selectedAddressId,
   );
 
+  // Validate products, variants, prices and stock.
+  const validatedItems = useMemo(() => {
+    return safeCartItems.map((item) => {
+      const product = safeProducts.find(
+        (current) => String(current.id) === String(item.productId),
+      );
+
+      const quantity = safeQuantity(item.quantity);
+
+      if (!product || (product.status && product.status !== "Active")) {
+        return {
+          ...item,
+          currentProduct: product,
+          currentVariant: null,
+          currentPrice: 0,
+          quantity,
+          issue: "unavailable",
+        };
+      }
+
+      const variants = Array.isArray(product.variants) ? product.variants : [];
+
+      let currentVariant = null;
+
+      if (variants.length > 0) {
+        currentVariant = variants.find(
+          (variant) =>
+            String(variant.id ?? variant.name) === String(item.variantId) ||
+            String(variant.name) === String(item.variantName),
+        );
+
+        if (!currentVariant) {
+          return {
+            ...item,
+            currentProduct: product,
+            currentVariant: null,
+            currentPrice: 0,
+            quantity,
+            issue: "variant-unavailable",
+          };
+        }
+      }
+
+      const currentPrice = Number(currentVariant?.price ?? product.price);
+
+      if (!Number.isFinite(currentPrice) || currentPrice < 0) {
+        return {
+          ...item,
+          currentProduct: product,
+          currentVariant,
+          currentPrice: 0,
+          quantity,
+          issue: "invalid-price",
+        };
+      }
+
+      const stockValue = currentVariant ? currentVariant.stock : product.stock;
+
+      const stock = Number(stockValue);
+
+      const hasStockLimit =
+        stockValue !== undefined &&
+        stockValue !== null &&
+        stockValue !== "" &&
+        Number.isFinite(stock);
+
+      if (hasStockLimit && stock <= 0) {
+        return {
+          ...item,
+          currentProduct: product,
+          currentVariant,
+          currentPrice,
+          quantity,
+          issue: "out-of-stock",
+        };
+      }
+
+      if (hasStockLimit && quantity > stock) {
+        return {
+          ...item,
+          currentProduct: product,
+          currentVariant,
+          currentPrice,
+          quantity,
+          availableStock: Math.floor(stock),
+          issue: "insufficient-stock",
+        };
+      }
+
+      return {
+        ...item,
+        currentProduct: product,
+        currentVariant,
+        currentPrice,
+        quantity,
+        issue: null,
+      };
+    });
+  }, [safeCartItems, safeProducts]);
+
+  const unavailableItems = validatedItems.filter((item) => item.issue !== null);
+
+  const hasUnavailableItems = unavailableItems.length > 0;
+
+  const totalQuantity = validatedItems.reduce(
+    (sum, item) => sum + item.quantity,
+    0,
+  );
+
+  const subtotal = validatedItems.reduce((sum, item) => {
+    if (item.issue) return sum;
+
+    return sum + item.currentPrice * item.quantity;
+  }, 0);
+
+  // Select a saved address.
   const handleSelectAddress = (item) => {
     setSelectedAddressId(item.id);
     setName(item.fullName);
@@ -141,6 +253,7 @@ const Checkout = () => {
     toast.success("Delivery address selected!");
   };
 
+  // Address form input.
   const handleAddressChange = (e) => {
     const { name, value } = e.target;
 
@@ -150,6 +263,7 @@ const Checkout = () => {
     }));
   };
 
+  // Save a new address.
   const handleSaveAddress = () => {
     const cleanedPhone = normalizePhone(addressForm.phone);
 
@@ -206,29 +320,69 @@ const Checkout = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  // WhatsApp Checkout.
+  const handleWhatsAppCheckout = (e) => {
     e.preventDefault();
 
-    if (isSubmitting) return;
+    if (isOpeningWhatsApp) return;
 
-    if (cartItems.length === 0) {
+    if (safeCartItems.length === 0) {
       toast.error("Your cart is empty!");
       return;
     }
 
-    // Recheck product availability before creating an order.
-    const currentProducts = useProductStore.getState().products;
+    // Recheck the latest product data before checkout.
+    const currentProducts = useProductStore.getState().products || [];
 
-    const unavailable = cartItems.filter((item) => {
+    const latestIssues = safeCartItems.some((item) => {
       const product = currentProducts.find(
-        (product) => String(product.id) === String(item.productId),
+        (current) => String(current.id) === String(item.productId),
       );
 
-      return !product || product.status === "Inactive";
+      if (!product || (product.status && product.status !== "Active")) {
+        return true;
+      }
+
+      const variants = Array.isArray(product.variants) ? product.variants : [];
+
+      let variant = null;
+
+      if (variants.length > 0) {
+        variant = variants.find(
+          (current) =>
+            String(current.id ?? current.name) === String(item.variantId) ||
+            String(current.name) === String(item.variantName),
+        );
+
+        if (!variant) return true;
+      }
+
+      const price = Number(variant?.price ?? product.price);
+
+      if (!Number.isFinite(price) || price < 0) return true;
+
+      const stockValue = variant ? variant.stock : product.stock;
+      const stock = Number(stockValue);
+
+      const hasStockLimit =
+        stockValue !== undefined &&
+        stockValue !== null &&
+        stockValue !== "" &&
+        Number.isFinite(stock);
+
+      if (hasStockLimit && stock < safeQuantity(item.quantity)) {
+        return true;
+      }
+
+      if (hasStockLimit && stock <= 0) {
+        return true;
+      }
+
+      return false;
     });
 
-    if (unavailable.length > 0) {
-      toast.error("Some products are unavailable. Please update your cart.");
+    if (hasUnavailableItems || latestIssues) {
+      toast.error("Some products need attention. Please review your cart.");
       return;
     }
 
@@ -238,7 +392,7 @@ const Checkout = () => {
     }
 
     if (!isValidPhone(phone)) {
-      toast.error("Enter a valid customer mobile number.");
+      toast.error("Enter a valid Bangladesh mobile number.");
       return;
     }
 
@@ -247,66 +401,84 @@ const Checkout = () => {
       return;
     }
 
-    setIsSubmitting(true);
+    const orderLines = validatedItems.map((item, index) => {
+      const itemTotal = item.currentPrice * item.quantity;
 
-    try {
-      const orderId = `AIS-${Date.now().toString().slice(-8)}`;
+      return [
+        `${index + 1}. ${item.currentProduct.name || item.name}`,
+        `   Category: ${getCategoryName(item.currentProduct.category || item.category)}`,
+        `   Package: ${item.currentVariant?.name || item.variantName || "Default"}`,
+        `   Unit Price: ${formatPrice(item.currentPrice)}`,
+        `   Quantity: ${item.quantity}`,
+        `   Subtotal: ${formatPrice(itemTotal)}`,
+      ].join("\n");
+    });
 
-      const orderDetails = {
-        orderId,
-        customerName: name.trim(),
-        email: email.trim(),
-        phone: normalizePhone(phone),
-        deliveryAddress: selectedAddress ? { ...selectedAddress } : null,
-        addressId: selectedAddress?.id || null,
-        paymentMethod,
+    const addressLines = selectedAddress
+      ? [
+          "----- DELIVERY ADDRESS -----",
+          `Name: ${selectedAddress.fullName}`,
+          `Phone: ${selectedAddress.phone}`,
+          `Address: ${selectedAddress.address}`,
+          `Area: ${selectedAddress.area}`,
+          `District: ${selectedAddress.district}`,
+        ]
+      : ["Delivery Address: Not provided (Digital Product)"];
 
-        // Payment integration is not configured yet.
-        senderNumber: "",
-        transactionId: "",
+    const message = [
+      "Hello AI-SaleBD! I want to place an order.",
+      "",
+      "----- CUSTOMER DETAILS -----",
+      `Name: ${name.trim()}`,
+      `Mobile: ${normalizePhone(phone)}`,
+      `Email: ${email.trim() || "Not provided"}`,
+      "",
+      ...addressLines,
+      "",
+      "----- ORDER DETAILS -----",
+      "",
+      ...orderLines,
+      "",
+      "---------------------------",
+      `Total Products: ${totalQuantity}`,
+      `Grand Total: ${formatPrice(subtotal)}`,
+      `Payment Preference: ${paymentMethod}`,
+      "",
+      "Please confirm product availability and payment instructions.",
+      "",
+      "Thank you!",
+    ].join("\n");
 
-        items: cartItems.map((item) => ({ ...item })),
-        total: Number(total),
+    const whatsappURL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 
-        status: "Pending Verification",
-        paymentStatus: "Not Paid",
-        deliveryMethod: "Not Selected",
-        deliveryStatus: "Pending",
-        createdAt: new Date().toISOString(),
-      };
+    setIsOpeningWhatsApp(true);
 
-      const existingOrders = JSON.parse(
-        localStorage.getItem(ORDER_KEY) || "[]",
+    const whatsappWindow = window.open(
+      whatsappURL,
+      "_blank",
+      "noopener,noreferrer",
+    );
+
+    if (!whatsappWindow) {
+      setIsOpeningWhatsApp(false);
+      toast.error(
+        "WhatsApp could not open. Please allow pop-ups and try again.",
       );
-
-      if (!Array.isArray(existingOrders)) {
-        throw new Error("Invalid order storage");
-      }
-
-      localStorage.setItem(
-        ORDER_KEY,
-        JSON.stringify([orderDetails, ...existingOrders]),
-      );
-
-      clearCart();
-
-      toast.success("Your order has been submitted!");
-
-      navigate("/order-success", {
-        state: { order: orderDetails },
-      });
-    } catch (error) {
-      console.error("AI-SaleBD order error:", error);
-      toast.error("Could not save your order. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+      return;
     }
+
+    toast.success("Order details are ready in WhatsApp.");
+
+    // Cart is intentionally not cleared here.
+    // The customer should confirm the order with the store first.
+    setTimeout(() => setIsOpeningWhatsApp(false), 1500);
   };
 
-  if (cartItems.length === 0) {
+  // Empty Cart.
+  if (safeCartItems.length === 0) {
     return (
-      <section className="container-custom flex min-h-[60vh] flex-col items-center justify-center py-16 text-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#211B3B]">
+      <section className="container-custom flex min-h-[60vh] flex-col items-center justify-center px-3 py-12 text-center">
+        <div className="flex h-20 w-20 items-center justify-center rounded-3xl border border-white/10 bg-[#211B3B]">
           <ShoppingBag size={38} className="text-[#8B5CF6]" />
         </div>
 
@@ -314,14 +486,15 @@ const Checkout = () => {
           Your Cart is Empty
         </h2>
 
-        <p className="mt-2 text-sm text-[#AAA3C1]">
+        <p className="mt-2 max-w-sm text-sm leading-6 text-[#AAA3C1]">
           Add some products before proceeding to checkout.
         </p>
 
         <Link
           to="/shop"
-          className="mt-6 rounded-xl bg-[#8B5CF6] px-6 py-3 text-sm font-bold text-white transition hover:opacity-90"
+          className="mt-6 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#8B5CF6] px-6 py-3 text-sm font-bold text-white transition hover:opacity-90"
         >
+          <ShoppingBag size={17} />
           Explore Products
         </Link>
       </section>
@@ -329,17 +502,19 @@ const Checkout = () => {
   }
 
   return (
-    <section className="container-custom max-w-6xl py-7 pb-28 sm:py-10">
+    <section className="container-custom max-w-6xl px-3 py-6 pb-12 sm:px-0 sm:py-10">
+      {/* Back to Cart */}
       <Link
         to="/cart"
-        className="mb-6 inline-flex items-center gap-2 text-sm text-[#AAA3C1] transition hover:text-white"
+        className="mb-5 inline-flex min-h-10 items-center gap-2 text-sm text-[#AAA3C1] transition hover:text-white"
       >
         <ArrowLeft size={17} />
         Back to Cart
       </Link>
 
-      <div className="mb-8">
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#B99AFF]">
+      {/* Page Heading */}
+      <div className="mb-6 sm:mb-8">
+        <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#B99AFF] sm:text-xs">
           <ShoppingBag size={15} />
           AI-SaleBD Checkout
         </div>
@@ -348,52 +523,53 @@ const Checkout = () => {
           Complete Your Order
         </h1>
 
-        <p className="mt-2 text-sm text-[#AAA3C1]">
-          Provide your details to submit your digital product order.
+        <p className="mt-2 text-xs leading-6 text-[#AAA3C1] sm:text-sm">
+          Provide your details to send your order through WhatsApp.
         </p>
       </div>
 
+      {/* Unavailable Products */}
       {hasUnavailableItems && (
-        <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle size={20} className="mt-0.5 shrink-0 text-red-400" />
+        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
+          <AlertCircle size={20} className="mt-0.5 shrink-0 text-red-400" />
 
-            <div>
-              <p className="text-sm font-semibold text-red-300">
-                Some products are unavailable
-              </p>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-red-300">
+              Some products need attention
+            </p>
 
-              <p className="mt-1 text-xs leading-5 text-[#AAA3C1]">
-                {unavailableItems.length} item(s) in your cart are inactive or
-                no longer available. Remove them before placing your order.
-              </p>
+            <p className="mt-1 text-xs leading-6 text-[#AAA3C1]">
+              {unavailableItems.length} item(s) are unavailable, have changed
+              packages, or have insufficient stock. Please return to your cart
+              and review these products.
+            </p>
 
-              <Link
-                to="/cart"
-                className="mt-3 inline-block text-xs font-bold text-red-300 underline"
-              >
-                Return to Cart
-              </Link>
-            </div>
+            <Link
+              to="/cart"
+              className="mt-2 inline-flex min-h-9 items-center text-xs font-bold text-red-300 underline"
+            >
+              Return to Cart
+            </Link>
           </div>
         </div>
       )}
 
       <form
-        onSubmit={handleSubmit}
-        className="grid items-start gap-6 lg:grid-cols-[1fr_370px]"
+        onSubmit={handleWhatsAppCheckout}
+        className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_370px] lg:gap-6"
       >
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-4 sm:space-y-5">
           {/* Delivery Address */}
-          <div className="rounded-2xl border border-white/10 bg-[#211B3B] p-5 sm:p-6">
-            <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <div className="rounded-2xl border border-white/10 bg-[#211B3B] p-4 sm:p-6">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#8B5CF6]/15 text-[#B99AFF]">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#8B5CF6]/15 text-[#B99AFF]">
                   <MapPin size={20} />
                 </div>
 
                 <div>
                   <h2 className="font-bold text-white">Delivery Address</h2>
+
                   <p className="text-xs text-[#AAA3C1]">
                     Optional for digital products
                   </p>
@@ -403,15 +579,16 @@ const Checkout = () => {
               <button
                 type="button"
                 onClick={() => setShowAddressForm((prev) => !prev)}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#8B5CF6]/40 bg-[#8B5CF6]/10 px-4 py-2.5 text-xs font-semibold text-[#B99AFF] transition hover:bg-[#8B5CF6]/20"
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[#8B5CF6]/40 bg-[#8B5CF6]/10 px-4 py-2.5 text-xs font-semibold text-[#B99AFF] transition hover:bg-[#8B5CF6]/20"
               >
                 <Plus size={16} />
                 Add New Address
               </button>
             </div>
 
+            {/* Saved Addresses */}
             {addresses.length > 0 ? (
-              <div className="space-y-3">
+              <div className="mt-5 space-y-3">
                 {addresses.map((item) => {
                   const isSelected = selectedAddressId === item.id;
 
@@ -426,7 +603,7 @@ const Checkout = () => {
                       key={item.id}
                       type="button"
                       onClick={() => handleSelectAddress(item)}
-                      className={`w-full rounded-xl border p-4 text-left transition ${
+                      className={`w-full rounded-xl border p-3.5 text-left transition sm:p-4 ${
                         isSelected
                           ? "border-[#8B5CF6] bg-[#8B5CF6]/10"
                           : "border-white/10 bg-[#171329] hover:border-white/30"
@@ -466,7 +643,9 @@ const Checkout = () => {
 
                           <p className="mt-2 flex items-start gap-2 text-xs leading-5 text-[#AAA3C1]">
                             <MapPinned size={14} className="mt-0.5 shrink-0" />
-                            {item.address}, {item.area}, {item.district}
+                            <span>
+                              {item.address}, {item.area}, {item.district}
+                            </span>
                           </p>
                         </div>
 
@@ -486,8 +665,8 @@ const Checkout = () => {
                 })}
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-white/15 bg-[#171329] px-4 py-7 text-center">
-                <MapPin size={28} className="mx-auto text-[#B99AFF]" />
+              <div className="mt-5 rounded-xl border border-dashed border-white/15 bg-[#171329] px-4 py-6 text-center">
+                <MapPin size={27} className="mx-auto text-[#B99AFF]" />
 
                 <p className="mt-3 text-sm font-semibold text-white">
                   No Saved Address
@@ -496,20 +675,13 @@ const Checkout = () => {
                 <p className="mt-1 text-xs text-[#AAA3C1]">
                   You can add an address if needed.
                 </p>
-
-                <Link
-                  to="/addresses"
-                  className="mt-4 inline-block text-xs font-semibold text-[#38BDF8] hover:text-white"
-                >
-                  Manage My Addresses
-                </Link>
               </div>
             )}
 
             {/* Address Form */}
             {showAddressForm && (
               <div className="mt-5 space-y-4 rounded-xl border border-[#8B5CF6]/30 bg-[#171329] p-4 sm:p-5">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <h3 className="font-bold text-white">Add New Address</h3>
 
                   <button
@@ -518,9 +690,10 @@ const Checkout = () => {
                       setShowAddressForm(false);
                       setAddressForm(emptyAddress);
                     }}
-                    className="text-xs text-[#AAA3C1] hover:text-white"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-[#AAA3C1] hover:bg-white/10 hover:text-white"
+                    aria-label="Close address form"
                   >
-                    Close
+                    <Trash2 size={16} />
                   </button>
                 </div>
 
@@ -535,7 +708,7 @@ const Checkout = () => {
                           label,
                         }))
                       }
-                      className={`flex items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-semibold ${
+                      className={`flex min-h-11 items-center justify-center gap-2 rounded-lg border text-sm font-semibold transition ${
                         addressForm.label === label
                           ? "border-[#8B5CF6] bg-[#8B5CF6]/15 text-[#B99AFF]"
                           : "border-white/10 text-[#AAA3C1]"
@@ -558,7 +731,8 @@ const Checkout = () => {
                   onChange={handleAddressChange}
                   placeholder="Full Name"
                   maxLength={100}
-                  className="w-full rounded-lg border border-white/10 bg-[#211B3B] px-4 py-3 text-sm text-white outline-none focus:border-[#8B5CF6] placeholder:text-[#77718E]"
+                  autoComplete="name"
+                  className="w-full rounded-lg border border-white/10 bg-[#211B3B] px-4 py-3.5 text-sm text-white outline-none focus:border-[#8B5CF6] placeholder:text-[#77718E]"
                 />
 
                 <input
@@ -573,7 +747,8 @@ const Checkout = () => {
                   }
                   placeholder="Phone Number (01XXXXXXXXX)"
                   maxLength={15}
-                  className="w-full rounded-lg border border-white/10 bg-[#211B3B] px-4 py-3 text-sm text-white outline-none focus:border-[#8B5CF6] placeholder:text-[#77718E]"
+                  inputMode="numeric"
+                  className="w-full rounded-lg border border-white/10 bg-[#211B3B] px-4 py-3.5 text-sm text-white outline-none focus:border-[#8B5CF6] placeholder:text-[#77718E]"
                 />
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -584,7 +759,7 @@ const Checkout = () => {
                     onChange={handleAddressChange}
                     placeholder="District"
                     maxLength={80}
-                    className="w-full rounded-lg border border-white/10 bg-[#211B3B] px-4 py-3 text-sm text-white outline-none focus:border-[#8B5CF6] placeholder:text-[#77718E]"
+                    className="w-full rounded-lg border border-white/10 bg-[#211B3B] px-4 py-3.5 text-sm text-white outline-none focus:border-[#8B5CF6] placeholder:text-[#77718E]"
                   />
 
                   <input
@@ -594,7 +769,7 @@ const Checkout = () => {
                     onChange={handleAddressChange}
                     placeholder="Area / Upazila"
                     maxLength={100}
-                    className="w-full rounded-lg border border-white/10 bg-[#211B3B] px-4 py-3 text-sm text-white outline-none focus:border-[#8B5CF6] placeholder:text-[#77718E]"
+                    className="w-full rounded-lg border border-white/10 bg-[#211B3B] px-4 py-3.5 text-sm text-white outline-none focus:border-[#8B5CF6] placeholder:text-[#77718E]"
                   />
                 </div>
 
@@ -605,13 +780,13 @@ const Checkout = () => {
                   placeholder="House number, road, area and other details"
                   rows={3}
                   maxLength={500}
-                  className="w-full resize-y rounded-lg border border-white/10 bg-[#211B3B] px-4 py-3 text-sm text-white outline-none focus:border-[#8B5CF6] placeholder:text-[#77718E]"
+                  className="w-full resize-y rounded-lg border border-white/10 bg-[#211B3B] px-4 py-3.5 text-sm text-white outline-none focus:border-[#8B5CF6] placeholder:text-[#77718E]"
                 />
 
                 <button
                   type="button"
                   onClick={handleSaveAddress}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#2563EB] px-4 py-3 text-sm font-bold text-white transition hover:opacity-90"
+                  className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#2563EB] px-4 py-3 text-sm font-bold text-white transition hover:opacity-90"
                 >
                   <CheckCircle2 size={17} />
                   Save & Select Address
@@ -621,7 +796,7 @@ const Checkout = () => {
 
             <Link
               to="/addresses"
-              className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-[#38BDF8] hover:text-white"
+              className="mt-4 inline-flex min-h-9 items-center gap-2 text-xs font-semibold text-[#38BDF8] hover:text-white"
             >
               <Pencil size={14} />
               Manage Saved Addresses
@@ -629,14 +804,15 @@ const Checkout = () => {
           </div>
 
           {/* Customer Information */}
-          <div className="rounded-2xl border border-white/10 bg-[#211B3B] p-5 sm:p-6">
+          <div className="rounded-2xl border border-white/10 bg-[#211B3B] p-4 sm:p-6">
             <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#8B5CF6]/15 text-[#B99AFF]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#8B5CF6]/15 text-[#B99AFF]">
                 <UserRound size={20} />
               </div>
 
               <div>
                 <h2 className="font-bold text-white">Customer Information</h2>
+
                 <p className="text-xs text-[#AAA3C1]">
                   Confirm your contact details
                 </p>
@@ -657,7 +833,7 @@ const Checkout = () => {
                   required
                   maxLength={80}
                   autoComplete="name"
-                  className="w-full rounded-xl border border-white/10 bg-[#171329] px-4 py-3.5 text-sm text-white outline-none transition focus:border-[#8B5CF6] placeholder:text-[#77718E]"
+                  className="min-h-12 w-full rounded-xl border border-white/10 bg-[#171329] px-4 py-3.5 text-sm text-white outline-none transition focus:border-[#8B5CF6] placeholder:text-[#77718E]"
                 />
               </div>
 
@@ -682,7 +858,7 @@ const Checkout = () => {
                     required
                     inputMode="numeric"
                     autoComplete="tel"
-                    className="w-full rounded-xl border border-white/10 bg-[#171329] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition focus:border-[#8B5CF6] placeholder:text-[#77718E]"
+                    className="min-h-12 w-full rounded-xl border border-white/10 bg-[#171329] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition focus:border-[#8B5CF6] placeholder:text-[#77718E]"
                   />
                 </div>
               </div>
@@ -708,36 +884,37 @@ const Checkout = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     maxLength={120}
                     autoComplete="email"
-                    className="w-full rounded-xl border border-white/10 bg-[#171329] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition focus:border-[#8B5CF6] placeholder:text-[#77718E]"
+                    className="min-h-12 w-full rounded-xl border border-white/10 bg-[#171329] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition focus:border-[#8B5CF6] placeholder:text-[#77718E]"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Payment Method */}
-          <div className="rounded-2xl border border-white/10 bg-[#211B3B] p-5 sm:p-6">
+          {/* Payment Preference */}
+          <div className="rounded-2xl border border-white/10 bg-[#211B3B] p-4 sm:p-6">
             <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#8B5CF6]/15 text-[#B99AFF]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#8B5CF6]/15 text-[#B99AFF]">
                 <CreditCard size={20} />
               </div>
 
               <div>
                 <h2 className="font-bold text-white">Payment Preference</h2>
+
                 <p className="text-xs text-[#AAA3C1]">
                   Select your preferred payment method
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
               {paymentMethods.map((method) => (
                 <button
                   key={method.id}
                   type="button"
                   onClick={() => setPaymentMethod(method.id)}
                   aria-pressed={paymentMethod === method.id}
-                  className={`rounded-xl border-2 px-2 py-4 text-sm font-bold transition ${
+                  className={`min-h-[76px] rounded-xl border-2 px-2 py-3 text-xs font-bold transition sm:text-sm ${
                     paymentMethod === method.id
                       ? `${method.color} bg-[#171329] text-white`
                       : "border-white/10 bg-[#171329] text-[#AAA3C1] hover:border-white/30"
@@ -747,7 +924,7 @@ const Checkout = () => {
 
                   {paymentMethod === method.id && (
                     <CheckCircle2
-                      size={15}
+                      size={16}
                       className="mx-auto mt-2 text-[#B99AFF]"
                     />
                   )}
@@ -755,7 +932,7 @@ const Checkout = () => {
               ))}
             </div>
 
-            <div className="mt-5 flex gap-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4">
+            <div className="mt-5 flex items-start gap-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-3.5 sm:p-4">
               <AlertCircle
                 size={19}
                 className="mt-0.5 shrink-0 text-yellow-400"
@@ -763,13 +940,13 @@ const Checkout = () => {
 
               <div>
                 <p className="text-sm font-semibold text-yellow-300">
-                  Demo Payment System
+                  Payment Instructions
                 </p>
 
-                <p className="mt-1 text-xs leading-5 text-[#AAA3C1]">
-                  Payment integration is not configured yet. Do not send money
-                  or enter a Transaction ID. Your preferred payment method will
-                  be saved with your order.
+                <p className="mt-1 text-xs leading-6 text-[#AAA3C1]">
+                  This is only your preferred payment method. Do not send money
+                  now. Our team will confirm product availability and provide
+                  payment instructions through WhatsApp.
                 </p>
               </div>
             </div>
@@ -777,9 +954,9 @@ const Checkout = () => {
         </div>
 
         {/* Order Summary */}
-        <aside className="h-fit space-y-4 lg:sticky lg:top-24">
-          <div className="rounded-2xl border border-white/10 bg-[#211B3B] p-5 sm:p-6">
-            <div className="flex items-center justify-between">
+        <aside className="min-w-0 space-y-4 lg:sticky lg:top-24">
+          <div className="rounded-2xl border border-white/10 bg-[#211B3B] p-4 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
               <h2 className="font-bold text-white">Order Summary</h2>
 
               <span className="rounded-full bg-[#8B5CF6]/15 px-3 py-1 text-xs font-bold text-[#B99AFF]">
@@ -787,15 +964,23 @@ const Checkout = () => {
               </span>
             </div>
 
-            <div className="mt-5 max-h-64 space-y-4 overflow-y-auto pr-1">
-              {cartItems.map((item) => (
-                <div key={item.cartId} className="flex gap-3">
+            {/* Products */}
+            <div className="mt-5 max-h-72 space-y-4 overflow-y-auto pr-1">
+              {validatedItems.map((item) => (
+                <div key={item.cartId} className="flex min-w-0 gap-3">
                   <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-[#171329]">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="h-full w-full object-cover"
-                    />
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-[#B99AFF]">
+                        <Package size={22} />
+                      </div>
+                    )}
 
                     <span className="absolute bottom-0 right-0 rounded-tl-md bg-[#8B5CF6] px-1.5 py-0.5 text-[9px] font-bold text-white">
                       {item.quantity}
@@ -807,17 +992,25 @@ const Checkout = () => {
                       {item.name}
                     </p>
 
-                    <p className="mt-1 text-[10px] text-[#B99AFF]">
-                      {item.variantName}
+                    <p className="mt-1 truncate text-[10px] text-[#B99AFF]">
+                      {item.currentVariant?.name ||
+                        item.variantName ||
+                        "Default"}
                     </p>
 
-                    <p className="mt-1 text-xs text-[#AAA3C1]">
-                      {formatPrice(item.price)} × {item.quantity}
+                    <p className="mt-1 text-[10px] text-[#AAA3C1]">
+                      {formatPrice(item.currentPrice)} × {item.quantity}
                     </p>
+
+                    {item.issue && (
+                      <p className="mt-1 text-[10px] font-semibold text-amber-300">
+                        Needs attention
+                      </p>
+                    )}
                   </div>
 
                   <p className="shrink-0 text-xs font-bold text-white">
-                    {formatPrice(item.price * item.quantity)}
+                    {formatPrice(item.currentPrice * item.quantity)}
                   </p>
                 </div>
               ))}
@@ -825,15 +1018,17 @@ const Checkout = () => {
 
             <div className="my-5 border-t border-white/10" />
 
+            {/* Price Details */}
             <div className="space-y-3">
-              <div className="flex justify-between text-sm text-[#AAA3C1]">
+              <div className="flex justify-between gap-3 text-sm text-[#AAA3C1]">
                 <span>Subtotal</span>
+
                 <span className="font-semibold text-white">
-                  {formatPrice(total)}
+                  {formatPrice(subtotal)}
                 </span>
               </div>
 
-              <div className="flex justify-between text-sm text-[#AAA3C1]">
+              <div className="flex justify-between gap-3 text-sm text-[#AAA3C1]">
                 <span>Delivery Fee</span>
                 <span className="font-semibold text-[#38BDF8]">Free</span>
               </div>
@@ -843,16 +1038,17 @@ const Checkout = () => {
                   <span className="font-bold text-white">Total Amount</span>
 
                   <span className="text-xl font-extrabold text-[#B99AFF]">
-                    {formatPrice(total)}
+                    {formatPrice(subtotal)}
                   </span>
                 </div>
               </div>
             </div>
 
+            {/* Selected Address */}
             {selectedAddress && (
               <div className="mt-5 rounded-xl border border-white/10 bg-[#171329] p-3">
                 <p className="text-xs font-bold text-[#B99AFF]">
-                  Saved Address
+                  Selected Address
                 </p>
 
                 <p className="mt-2 text-sm font-semibold text-white">
@@ -866,28 +1062,36 @@ const Checkout = () => {
               </div>
             )}
 
+            {/* WhatsApp Button */}
             <button
               type="submit"
-              disabled={isSubmitting || hasUnavailableItems}
-              className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] px-4 py-3.5 text-sm font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isOpeningWhatsApp || hasUnavailableItems}
+              className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-green-950/20 transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-600 disabled:opacity-60"
             >
-              <ShoppingBag size={18} />
-              {isSubmitting
-                ? "Processing..."
+              <MessageCircle size={19} />
+
+              {isOpeningWhatsApp
+                ? "Opening WhatsApp..."
                 : hasUnavailableItems
-                  ? "Remove Unavailable Products"
-                  : "Confirm Order"}
+                  ? "Review Cart Items First"
+                  : "Continue to WhatsApp"}
             </button>
 
-            <div className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-[#AAA3C1]">
+            <p className="mt-3 text-center text-[10px] leading-5 text-[#AAA3C1]">
+              Your order details will be prepared in WhatsApp. The store will
+              confirm your order manually.
+            </p>
+
+            <div className="mt-5 flex items-center justify-center gap-2 text-center text-[11px] text-[#AAA3C1]">
               <ShieldCheck size={15} className="text-[#38BDF8]" />
-              Order saved locally for demo
+              Manual order confirmation
             </div>
           </div>
 
+          {/* Delivery Information */}
           <div className="rounded-xl border border-white/10 bg-[#211B3B] p-4">
             <div className="flex items-start gap-3">
-              <Package size={18} className="mt-0.5 text-[#38BDF8]" />
+              <Package size={18} className="mt-0.5 shrink-0 text-[#38BDF8]" />
 
               <div>
                 <p className="text-xs font-bold text-white">
@@ -895,8 +1099,8 @@ const Checkout = () => {
                 </p>
 
                 <p className="mt-1 text-xs leading-5 text-[#AAA3C1]">
-                  After order review, the store will choose WhatsApp, Email or
-                  both for product delivery.
+                  After order confirmation, our team will arrange delivery
+                  through WhatsApp, Email or both.
                 </p>
               </div>
             </div>
@@ -905,6 +1109,6 @@ const Checkout = () => {
       </form>
     </section>
   );
-};
+}
 
 export default Checkout;

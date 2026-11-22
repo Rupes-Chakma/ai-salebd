@@ -1,388 +1,549 @@
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   Search,
-  Gamepad2,
   Sparkles,
-  Crown,
-  Gift,
-  Monitor,
-  ShieldCheck,
-  Zap,
-  Headphones,
+  ChevronLeft,
+  ChevronRight,
   ShoppingBag,
-  Package,
+  ImageOff,
+  Zap,
+  ShieldCheck,
+  Headset,
+  Wallet,
+  CheckCircle2,
   MessageCircle,
   ChevronDown,
-  CheckCircle2,
-  Bot,
-  CreditCard,
+  HelpCircle,
+  Star,
+  Clock,
 } from "lucide-react";
-import { useState } from "react";
 
 import FeaturedProducts from "../components/home/FeaturedProducts";
 import CategorySection from "../components/home/CategorySection";
+import useProductStore from "../store/useProductStore";
 
-const categories = [
-  {
-    name: "AI Tools",
-    icon: Sparkles,
-    path: "/category/ai-tools",
-    color: "from-blue-500/20 to-cyan-500/10",
-  },
-  {
-    name: "Subscriptions",
-    icon: Crown,
-    path: "/category/subscriptions",
-    color: "from-pink-500/20 to-purple-500/10",
-  },
-  {
-    name: "Software",
-    icon: Monitor,
-    path: "/category/software",
-    color: "from-cyan-500/20 to-blue-500/10",
-  },
-  {
-    name: "Gift Cards",
-    icon: Gift,
-    path: "/category/gift-cards",
-    color: "from-orange-500/20 to-yellow-500/10",
-  },
-  {
-    name: "Gaming",
-    icon: Gamepad2,
-    path: "/category/gaming",
-    color: "from-purple-500/20 to-indigo-500/10",
-  },
-];
+const WHATSAPP_NUMBER = "8801648582639";
 
 const benefits = [
   {
-    icon: ShieldCheck,
-    title: "Trusted Service",
-    description: "Clear product information and transparent order assistance.",
-  },
-  {
     icon: Zap,
-    title: "Quick Order Processing",
-    description: "Get timely updates while our team processes your order.",
+    title: "Fast Delivery",
+    description: "Quick order processing",
   },
   {
-    icon: Headphones,
+    icon: ShieldCheck,
+    title: "Secure Ordering",
+    description: "Simple ordering process",
+  },
+  {
+    icon: Wallet,
+    title: "Affordable Price",
+    description: "Budget-friendly products",
+  },
+  {
+    icon: Headset,
     title: "Customer Support",
-    description: "Contact our support team whenever you need assistance.",
+    description: "We're here to help",
   },
 ];
 
-const steps = [
+const reasons = [
   {
-    number: "01",
-    icon: Search,
-    title: "Explore AI Tools",
+    icon: CheckCircle2,
+    title: "Easy Ordering",
     description:
-      "Browse AI tools, subscriptions and other digital products to find what you need.",
+      "Browse your preferred digital products and place your order easily.",
   },
   {
-    number: "02",
-    icon: MessageCircle,
-    title: "Order via WhatsApp",
+    icon: ShieldCheck,
+    title: "Personal Support",
     description:
-      "Select your product and send your order through WhatsApp for confirmation.",
+      "Get assistance from our support team throughout the ordering process.",
   },
   {
-    number: "03",
-    icon: Package,
-    title: "Confirmation & Delivery",
+    icon: Wallet,
+    title: "Affordable Options",
     description:
-      "Our team will confirm your order and communicate the relevant delivery details.",
+      "Explore digital products with pricing designed for different budgets.",
   },
 ];
 
 const faqs = [
   {
-    question: "What is AI-SaleBD?",
+    question: "How can I order a product?",
     answer:
-      "AI-SaleBD is a Bangladesh-focused digital marketplace where you can explore AI tools, premium subscriptions, software, gift cards and other digital products.",
+      "Browse the Shop or Homepage, select your preferred product, and follow the available ordering instructions.",
   },
   {
-    question: "What products can I buy?",
+    question: "How can I contact AI-SaleBD?",
     answer:
-      "You can explore AI tools, subscriptions, software, gift cards and gaming-related digital products available in our marketplace.",
+      "You can contact our support team through the WhatsApp support button available on the website.",
   },
   {
-    question: "How can I place an order?",
+    question: "How will I receive my digital product?",
     answer:
-      "Browse the Shop, select a product and use the WhatsApp order option. You can also add multiple products to your cart and send your order through WhatsApp.",
+      "Delivery details will be confirmed through the order communication channel after your order is reviewed.",
   },
   {
-    question: "How will I receive my product?",
+    question: "Can I ask questions before ordering?",
     answer:
-      "After your order is confirmed, our team will communicate the applicable delivery method and relevant instructions.",
-  },
-  {
-    question: "Which payment methods are available?",
-    answer:
-      "Payment instructions and available payment methods will be communicated by our support team during order confirmation.",
-  },
-  {
-    question: "Can I request a refund?",
-    answer:
-      "Refund requests are reviewed according to our Refund Policy. Please contact our support team for assistance.",
+      "Yes. Contact our support team through WhatsApp if you need product information or ordering assistance.",
   },
 ];
 
 function Home() {
   const navigate = useNavigate();
-  const [activeFaq, setActiveFaq] = useState(0);
+  const products = useProductStore((state) => state.products);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
+  const activeProducts = Array.isArray(products)
+    ? products.filter((product) => product && product.status === "Active")
+    : [];
 
-    const query = e.currentTarget.search.value.trim();
+  const sliderProducts = activeProducts.filter(
+    (product) => product.showOnSlider === true,
+  );
+
+  const bestSellerProducts = activeProducts
+    .filter(
+      (product) => String(product.badge || "").toLowerCase() === "popular",
+    )
+    .slice(0, 4);
+
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [openFaq, setOpenFaq] = useState(0);
+
+  const safeActiveSlide =
+    sliderProducts.length > 0 ? activeSlide % sliderProducts.length : 0;
+
+  const currentProduct = sliderProducts[safeActiveSlide];
+
+  useEffect(() => {
+    setActiveSlide(0);
+  }, [sliderProducts.length]);
+
+  useEffect(() => {
+    if (sliderProducts.length <= 1) return;
+
+    const timer = setInterval(() => {
+      setActiveSlide((current) => (current + 1) % sliderProducts.length);
+    }, 4500);
+
+    return () => clearInterval(timer);
+  }, [sliderProducts.length]);
+
+  const nextSlide = () => {
+    if (sliderProducts.length > 1) {
+      setActiveSlide((current) => (current + 1) % sliderProducts.length);
+    }
+  };
+
+  const previousSlide = () => {
+    if (sliderProducts.length > 1) {
+      setActiveSlide(
+        (current) =>
+          (current - 1 + sliderProducts.length) % sliderProducts.length,
+      );
+    }
+  };
+
+  const handleSearch = (event) => {
+    event.preventDefault();
+    const query = event.currentTarget.search.value.trim();
 
     if (query) {
       navigate(`/search?q=${encodeURIComponent(query)}`);
     }
   };
 
+  const handleWhatsApp = () => {
+    const message = "Hello AI-SaleBD! I need some help.";
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+      message,
+    )}`;
+
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div className="overflow-x-clip">
-      {/* HERO SECTION */}
-      <section className="relative">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#8B5CF6]/15 via-transparent to-[#38BDF8]/10" />
-
-        <div className="container-custom relative grid items-center gap-9 py-10 sm:py-14 lg:min-h-[570px] lg:grid-cols-2 lg:gap-12 lg:py-20">
-          {/* Hero Content */}
-          <div className="text-center lg:text-left">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#8B5CF6]/30 bg-[#8B5CF6]/10 px-3 py-2 text-[11px] font-semibold text-[#B99AFF] sm:text-sm">
-              <Sparkles size={15} />
-              Bangladesh's AI Tools Marketplace
-            </span>
-
-            <h1 className="mt-5 text-[34px] font-extrabold leading-[1.15] tracking-tight text-white sm:text-5xl lg:mt-7 lg:text-6xl">
-              Discover Powerful
-              <br />
-              <span className="gradient-text">AI Tools.</span>
-              <br />
-              One Marketplace.
-            </h1>
-
-            <p className="mx-auto mt-4 max-w-md text-sm leading-7 text-[#AAA3C1] sm:text-base lg:mx-0 lg:mt-6">
-              Explore AI tools, premium subscriptions, software and digital
-              services — everything you need in one marketplace.
-            </p>
-
-            <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
-              <Link
-                to="/category/ai-tools"
-                className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-purple-950/30 transition hover:brightness-110 active:scale-[0.98]"
-              >
-                <Sparkles size={18} />
-                Explore AI Tools
-                <ArrowRight size={17} />
-              </Link>
+      {/* HERO SLIDER */}
+      <section className="relative pt-3 pb-4 sm:pt-6 sm:pb-7">
+        <div className="container-custom">
+          {currentProduct ? (
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#211B3B] shadow-xl shadow-purple-950/20 sm:rounded-3xl">
+              <div className="pointer-events-none absolute -left-20 -top-24 h-52 w-52 rounded-full bg-purple-600/20 blur-[80px]" />
+              <div className="pointer-events-none absolute -bottom-24 right-0 h-56 w-56 rounded-full bg-blue-500/15 blur-[85px]" />
 
               <Link
-                to="/shop"
-                className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10 active:scale-[0.98]"
+                to={`/product/${currentProduct.id}`}
+                key={currentProduct.id}
+                className="group relative grid min-h-[190px] grid-cols-[1.15fr_0.85fr] items-center gap-1 px-4 py-5 sm:min-h-[270px] sm:grid-cols-2 sm:gap-6 sm:px-10 sm:py-8 lg:min-h-[340px] lg:px-16 lg:py-10"
               >
-                <ShoppingBag size={18} />
-                Browse All Products
+                <div className="relative z-10 min-w-0">
+                  <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-purple-400/20 bg-purple-500/10 px-2 py-1 text-[8px] font-bold tracking-wider text-[#C4A7FF] sm:mb-4 sm:px-3 sm:py-1.5 sm:text-[10px]">
+                    <Sparkles size={11} />
+                    FEATURED PRODUCT
+                  </div>
+
+                  {currentProduct.badge && (
+                    <div className="mb-2 text-[9px] font-bold text-[#B99AFF] sm:mb-3 sm:text-xs">
+                      {currentProduct.badge}
+                    </div>
+                  )}
+
+                  <h1 className="line-clamp-2 max-w-[420px] text-lg font-extrabold leading-tight text-white sm:text-3xl lg:text-5xl">
+                    {currentProduct.name}
+                  </h1>
+
+                  <p className="mt-1.5 line-clamp-2 max-w-sm text-[9px] leading-4 text-[#B9B2CE] sm:mt-3 sm:text-sm sm:leading-6">
+                    {currentProduct.description ||
+                      "Discover premium digital products at AI-SaleBD."}
+                  </p>
+
+                  <div className="mt-2 flex flex-wrap items-center gap-2 sm:mt-5 sm:gap-3">
+                    <span className="text-lg font-extrabold text-white sm:text-2xl lg:text-3xl">
+                      ৳
+                      {Number(currentProduct.price || 0).toLocaleString(
+                        "en-BD",
+                      )}
+                    </span>
+
+                    {currentProduct.oldPrice &&
+                      Number(currentProduct.oldPrice) >
+                        Number(currentProduct.price) && (
+                        <span className="text-[10px] text-[#AAA3C1] line-through sm:text-sm">
+                          ৳
+                          {Number(currentProduct.oldPrice).toLocaleString(
+                            "en-BD",
+                          )}
+                        </span>
+                      )}
+                  </div>
+
+                  <span className="mt-3 inline-flex min-h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#4F46E5] px-3 py-2 text-[10px] font-bold text-white shadow-lg shadow-purple-950/30 transition group-hover:brightness-110 sm:mt-5 sm:min-h-11 sm:gap-2 sm:rounded-xl sm:px-5 sm:text-sm">
+                    <ShoppingBag size={13} />
+                    Shop Now
+                    <ArrowRight
+                      size={13}
+                      className="transition-transform group-hover:translate-x-1"
+                    />
+                  </span>
+                </div>
+
+                <div className="relative flex h-[135px] min-w-0 items-center justify-center sm:h-[220px] lg:h-[270px]">
+                  <div className="absolute inset-4 rounded-full bg-purple-500/20 blur-[45px] sm:inset-8 sm:blur-[65px]" />
+
+                  <div className="relative flex h-full w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] p-2 sm:rounded-2xl sm:p-5">
+                    {currentProduct.image ? (
+                      <img
+                        src={currentProduct.image}
+                        alt={currentProduct.name}
+                        className="h-full w-full object-contain transition duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-[#AAA3C1]">
+                        <ImageOff size={30} />
+                        <span className="text-[9px] sm:text-xs">No Image</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </Link>
+
+              {sliderProducts.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={previousSlide}
+                    aria-label="Previous slide"
+                    className="absolute left-1 top-1/2 z-20 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#171326]/80 text-white backdrop-blur transition hover:bg-purple-600 sm:left-3 sm:h-10 sm:w-10"
+                  >
+                    <ChevronLeft size={17} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={nextSlide}
+                    aria-label="Next slide"
+                    className="absolute right-1 top-1/2 z-20 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#171326]/80 text-white backdrop-blur transition hover:bg-purple-600 sm:right-3 sm:h-10 sm:w-10"
+                  >
+                    <ChevronRight size={17} />
+                  </button>
+
+                  <div className="absolute bottom-2 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 sm:bottom-4 sm:gap-2">
+                    {sliderProducts.map((product, index) => (
+                      <button
+                        key={product.id}
+                        type="button"
+                        onClick={() => setActiveSlide(index)}
+                        aria-label={`Go to slide ${index + 1}`}
+                        className={`h-1.5 rounded-full transition-all sm:h-2 ${
+                          safeActiveSlide === index
+                            ? "w-5 bg-[#C4A7FF] sm:w-7"
+                            : "w-1.5 bg-white/40 sm:w-2"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {sliderProducts.length > 1 && (
+                <div className="absolute right-3 top-3 z-10 rounded-full border border-white/10 bg-[#171326]/70 px-2 py-1 text-[8px] font-semibold text-white backdrop-blur sm:right-5 sm:top-5 sm:px-3 sm:text-[10px]">
+                  {safeActiveSlide + 1} / {sliderProducts.length}
+                </div>
+              )}
             </div>
+          ) : (
+            <div className="relative flex min-h-[190px] items-center justify-between overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-[#29194C] via-[#211B3B] to-[#17243E] px-5 py-6 sm:min-h-[270px] sm:rounded-3xl sm:px-10 lg:min-h-[320px] lg:px-16">
+              <div className="pointer-events-none absolute -left-16 -top-20 h-52 w-52 rounded-full bg-purple-500/20 blur-[80px]" />
 
-            <div className="mt-7 flex flex-wrap justify-center gap-x-5 gap-y-3 text-xs text-[#AAA3C1] lg:justify-start sm:text-sm">
-              <span className="flex items-center gap-2">
-                <ShieldCheck size={16} className="text-[#38BDF8]" />
-                Trusted Service
-              </span>
-
-              <span className="flex items-center gap-2">
-                <Zap size={16} className="text-[#38BDF8]" />
-                Quick Order Processing
-              </span>
-            </div>
-          </div>
-
-          {/* Hero Visual */}
-          <div className="relative mx-auto w-full max-w-md lg:max-w-lg">
-            <div className="absolute inset-0 rounded-full bg-[#8B5CF6]/20 blur-[90px]" />
-
-            <div className="relative rounded-3xl border border-white/10 bg-[#211B3B]/90 p-4 shadow-2xl shadow-purple-950/40 backdrop-blur-xl sm:p-7">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs text-[#AAA3C1] sm:text-sm">
-                    Welcome to
-                  </p>
-
-                  <h2 className="mt-1 text-2xl font-extrabold sm:text-3xl">
-                    <span className="gradient-text">AI-SaleBD</span>
-                  </h2>
-
-                  <p className="mt-1 text-xs text-[#AAA3C1]">
-                    Your Gateway to Premium AI Tools.
-                  </p>
+              <div className="relative z-10 max-w-lg">
+                <div className="mb-3 inline-flex items-center gap-1.5 text-[9px] font-bold tracking-wider text-[#C4A7FF] sm:text-xs">
+                  <Sparkles size={14} />
+                  WELCOME TO AI-SALEBD
                 </div>
 
-                <div className="rounded-xl bg-[#8B5CF6]/20 p-3 sm:p-4">
-                  <Bot size={27} className="text-[#B99AFF]" />
-                </div>
-              </div>
+                <h1 className="text-2xl font-extrabold leading-tight text-white sm:text-4xl lg:text-5xl">
+                  Your Digital Marketplace
+                </h1>
 
-              <div className="mt-5 grid grid-cols-2 gap-3 sm:mt-7 sm:gap-4">
-                {categories.slice(0, 4).map((category) => {
-                  const Icon = category.icon;
-
-                  return (
-                    <Link
-                      key={category.name}
-                      to={category.path}
-                      className={`rounded-2xl border border-white/10 bg-gradient-to-br ${category.color} p-4 transition hover:-translate-y-1 hover:border-[#8B5CF6]/50 sm:p-5`}
-                    >
-                      <Icon size={25} className="text-[#B99AFF]" />
-
-                      <p className="mt-3 text-xs font-bold text-white sm:mt-4 sm:text-sm">
-                        {category.name}
-                      </p>
-                    </Link>
-                  );
-                })}
-              </div>
-
-              <div className="mt-4 rounded-xl border border-white/5 bg-white/5 p-3 sm:p-4">
-                <p className="text-xs font-semibold text-white sm:text-sm">
-                  Discover. Choose. Order.
+                <p className="mt-2 max-w-sm text-[10px] leading-5 text-[#B9B2CE] sm:mt-3 sm:text-sm sm:leading-6">
+                  Discover AI tools, premium subscriptions and digital products.
                 </p>
 
-                <p className="mt-1 text-[11px] text-[#AAA3C1] sm:text-xs">
-                  Your digital essentials, all in one place.
-                </p>
+                <Link
+                  to="/shop"
+                  className="mt-4 inline-flex min-h-9 items-center gap-2 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#4F46E5] px-4 py-2 text-xs font-bold text-white transition hover:brightness-110 sm:mt-5 sm:min-h-11 sm:rounded-xl sm:px-5 sm:text-sm"
+                >
+                  Browse Products
+                  <ArrowRight size={15} />
+                </Link>
+              </div>
+
+              <div className="relative mr-2 hidden h-28 w-28 items-center justify-center rounded-3xl border border-white/10 bg-white/[0.04] text-[#C4A7FF] sm:flex lg:mr-10 lg:h-40 lg:w-40">
+                <Sparkles size={55} />
               </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
-      {/* SEARCH SECTION */}
-      <section className="container-custom py-5 sm:py-8">
+      {/* SEARCH */}
+      <section className="container-custom py-3 sm:py-5">
         <form
           onSubmit={handleSearch}
-          className="mx-auto flex max-w-2xl items-center gap-2 rounded-2xl border border-white/10 bg-[#211B3B] p-2"
+          className="mx-auto flex max-w-2xl items-center gap-2 rounded-xl border border-white/10 bg-[#211B3B] p-1.5 sm:rounded-2xl sm:p-2"
         >
-          <Search size={19} className="ml-2 shrink-0 text-[#AAA3C1]" />
+          <Search size={18} className="ml-2 shrink-0 text-[#AAA3C1]" />
 
           <input
             name="search"
             type="search"
             placeholder="Search AI tools and digital products..."
             aria-label="Search products"
-            className="h-11 min-w-0 flex-1 bg-transparent px-1 text-sm text-white outline-none placeholder:text-[#77718D]"
+            className="h-10 min-w-0 flex-1 bg-transparent px-1 text-xs text-white outline-none placeholder:text-[#77718D] sm:h-11 sm:text-sm"
           />
 
           <button
             type="submit"
-            className="min-h-11 rounded-xl bg-[#8B5CF6] px-4 text-sm font-bold text-white transition hover:bg-[#7C3AED] active:scale-95 sm:px-6"
+            className="min-h-10 rounded-lg bg-[#8B5CF6] px-4 text-xs font-bold text-white transition hover:bg-[#7C3AED] active:scale-95 sm:min-h-11 sm:rounded-xl sm:px-6 sm:text-sm"
           >
             Search
           </button>
         </form>
       </section>
 
-      {/* CATEGORIES */}
+      {/* TRUST & BENEFITS */}
+      <section className="container-custom pb-5 sm:pb-8">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+          {benefits.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <div
+                key={item.title}
+                className="flex items-center gap-2.5 rounded-xl border border-white/[0.07] bg-[#211B3B]/70 p-3 transition hover:border-purple-400/30 sm:gap-3 sm:rounded-2xl sm:p-4"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple-500/10 text-[#B99AFF] sm:h-11 sm:w-11 sm:rounded-xl">
+                  <Icon size={19} />
+                </div>
+
+                <div className="min-w-0">
+                  <h3 className="truncate text-[10px] font-bold text-white sm:text-sm">
+                    {item.title}
+                  </h3>
+                  <p className="mt-0.5 line-clamp-1 text-[9px] text-[#AAA3C1] sm:text-xs">
+                    {item.description}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* CATEGORIES - EXISTING */}
       <CategorySection />
 
-      {/* FEATURED PRODUCTS */}
+      {/* FEATURED PRODUCTS - EXISTING */}
       <FeaturedProducts />
 
-      {/* WHY CHOOSE US */}
-      <section className="border-y border-white/5 bg-[#171426] py-12 sm:py-16">
-        <div className="container-custom">
-          <div className="mb-7 text-center sm:mb-10">
-            <p className="text-xs font-bold tracking-widest text-[#B99AFF]">
-              WHY AI-SALEBD
-            </p>
+      {/* BEST SELLERS */}
+      {bestSellerProducts.length > 0 && (
+        <section className="container-custom py-7 sm:py-10">
+          <div className="mb-5 flex items-end justify-between gap-3 sm:mb-7">
+            <div>
+              <div className="mb-1 flex items-center gap-2 text-xs font-bold text-[#B99AFF]">
+                <Star size={15} />
+                POPULAR PICKS
+              </div>
 
-            <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
-              Why Choose Us?
-            </h2>
+              <h2 className="text-xl font-extrabold text-white sm:text-2xl lg:text-3xl">
+                Popular Products
+              </h2>
 
-            <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#AAA3C1]">
-              Find your digital essentials with a simple ordering experience and
-              dedicated customer support.
-            </p>
+              <p className="mt-1 text-xs text-[#AAA3C1] sm:text-sm">
+                Explore products marked as popular.
+              </p>
+            </div>
+
+            <Link
+              to="/shop"
+              className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-[#C4A7FF] transition hover:text-white sm:text-sm"
+            >
+              View All
+              <ArrowRight size={15} />
+            </Link>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
-            {benefits.map((item) => {
-              const Icon = item.icon;
+          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+            {bestSellerProducts.map((product) => (
+              <Link
+                key={product.id}
+                to={`/product/${product.id}`}
+                className="group overflow-hidden rounded-xl border border-white/10 bg-[#211B3B] transition duration-300 hover:-translate-y-1 hover:border-purple-400/40 hover:shadow-xl hover:shadow-purple-950/20 sm:rounded-2xl"
+              >
+                <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-white/[0.035] p-4 sm:p-6">
+                  {product.image ? (
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      loading="lazy"
+                      className="h-full w-full object-contain transition duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-[#AAA3C1]">
+                      <ImageOff size={28} />
+                      <span className="text-xs">No Image</span>
+                    </div>
+                  )}
 
-              return (
-                <div
-                  key={item.title}
-                  className="flex items-start gap-4 rounded-2xl border border-white/10 bg-[#211B3B] p-5 sm:block sm:p-6"
-                >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#8B5CF6]/15 text-[#B99AFF]">
-                    <Icon size={23} />
+                  <span className="absolute left-2 top-2 rounded-md bg-purple-500/15 px-2 py-1 text-[9px] font-bold text-[#C4A7FF]">
+                    POPULAR
+                  </span>
+                </div>
+
+                <div className="p-3 sm:p-4">
+                  <h3 className="line-clamp-2 min-h-9 text-xs font-bold text-white transition group-hover:text-[#C4A7FF] sm:min-h-10 sm:text-sm">
+                    {product.name}
+                  </h3>
+
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-extrabold text-white sm:text-base">
+                      ৳{Number(product.price || 0).toLocaleString("en-BD")}
+                    </span>
+
+                    {product.oldPrice &&
+                      Number(product.oldPrice) > Number(product.price) && (
+                        <span className="text-[10px] text-[#AAA3C1] line-through">
+                          ৳{Number(product.oldPrice).toLocaleString("en-BD")}
+                        </span>
+                      )}
                   </div>
 
-                  <div>
-                    <h3 className="text-sm font-bold text-white sm:mt-5 sm:text-lg">
-                      {item.title}
-                    </h3>
-
-                    <p className="mt-1 text-xs leading-6 text-[#AAA3C1] sm:mt-2 sm:text-sm">
-                      {item.description}
-                    </p>
+                  <div className="mt-3 flex items-center justify-center gap-1.5 rounded-lg bg-purple-500/10 py-2 text-[10px] font-bold text-[#C4A7FF] transition group-hover:bg-purple-500 group-hover:text-white sm:text-xs">
+                    View Product
+                    <ArrowRight size={13} />
                   </div>
                 </div>
-              );
-            })}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* PROMOTIONAL CTA */}
+      <section className="container-custom py-5 sm:py-8">
+        <div className="relative overflow-hidden rounded-2xl border border-purple-400/20 bg-gradient-to-r from-[#29194C] via-[#302052] to-[#17243E] px-5 py-7 sm:rounded-3xl sm:px-10 sm:py-10 lg:px-14">
+          <div className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-purple-500/20 blur-[80px]" />
+
+          <div className="relative z-10 flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
+            <div className="max-w-xl">
+              <div className="mb-2 flex items-center gap-2 text-xs font-bold text-[#C4A7FF]">
+                <Sparkles size={15} />
+                EXPLORE MORE
+              </div>
+
+              <h2 className="text-xl font-extrabold leading-tight text-white sm:text-3xl">
+                Find the Right Digital Tools for You
+              </h2>
+
+              <p className="mt-2 text-xs leading-5 text-[#C7BEDB] sm:text-sm sm:leading-6">
+                Explore our collection and discover digital products that match
+                your needs.
+              </p>
+            </div>
+
+            <Link
+              to="/shop"
+              className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#4F46E5] px-5 py-3 text-xs font-bold text-white shadow-lg shadow-purple-950/30 transition hover:brightness-110 active:scale-95 sm:text-sm"
+            >
+              Explore Products
+              <ArrowRight size={16} />
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
-      <section className="container-custom py-14 sm:py-20">
-        <div className="mb-10 text-center">
-          <p className="text-xs font-bold tracking-widest text-[#B99AFF]">
-            SIMPLE PROCESS
-          </p>
+      {/* WHY CHOOSE AI-SALEBD */}
+      <section className="container-custom py-7 sm:py-10">
+        <div className="mx-auto mb-6 max-w-xl text-center sm:mb-8">
+          <div className="mb-2 flex items-center justify-center gap-2 text-xs font-bold text-[#B99AFF]">
+            <Sparkles size={15} />
+            WHY AI-SALEBD
+          </div>
 
-          <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
-            How It Works
+          <h2 className="text-xl font-extrabold text-white sm:text-2xl lg:text-3xl">
+            A Simpler Way to Explore Digital Products
           </h2>
 
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#AAA3C1]">
-            Getting your digital products from AI-SaleBD is simple. Follow these
-            three steps to get started.
+          <p className="mt-2 text-xs leading-5 text-[#AAA3C1] sm:text-sm">
+            Discover products, get assistance and place your orders with ease.
           </p>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-3">
-          {steps.map((step) => {
-            const Icon = step.icon;
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-5">
+          {reasons.map((item) => {
+            const Icon = item.icon;
 
             return (
               <div
-                key={step.number}
-                className="relative rounded-2xl border border-white/10 bg-[#211B3B] p-6 transition hover:-translate-y-1 hover:border-[#8B5CF6]/40"
+                key={item.title}
+                className="rounded-2xl border border-white/[0.08] bg-[#211B3B]/70 p-5 transition hover:-translate-y-1 hover:border-purple-400/30 sm:p-6"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#8B5CF6]/15 text-[#B99AFF]">
-                    <Icon size={24} />
-                  </div>
-
-                  <span className="text-3xl font-black text-white/10">
-                    {step.number}
-                  </span>
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-purple-500/10 text-[#B99AFF]">
+                  <Icon size={22} />
                 </div>
 
-                <h3 className="mt-5 text-lg font-bold text-white">
-                  {step.title}
+                <h3 className="text-sm font-bold text-white sm:text-base">
+                  {item.title}
                 </h3>
 
-                <p className="mt-2 text-sm leading-7 text-[#AAA3C1]">
-                  {step.description}
+                <p className="mt-2 text-xs leading-5 text-[#AAA3C1] sm:text-sm sm:leading-6">
+                  {item.description}
                 </p>
               </div>
             );
@@ -390,113 +551,87 @@ function Home() {
         </div>
       </section>
 
-      {/* FAQ SECTION */}
-      <section className="border-y border-white/5 bg-[#171426] py-14 sm:py-20">
-        <div className="container-custom">
-          <div className="mx-auto mb-9 max-w-2xl text-center">
-            <p className="text-xs font-bold tracking-widest text-[#B99AFF]">
-              NEED HELP?
-            </p>
+      {/* CUSTOMER SUPPORT CTA */}
+      <section className="container-custom py-5 sm:py-7">
+        <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-[#211B3B]/80 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-green-500/10 text-green-400">
+              <MessageCircle size={22} />
+            </div>
 
-            <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
-              Frequently Asked Questions
-            </h2>
-
-            <p className="mt-3 text-sm leading-7 text-[#AAA3C1]">
-              Find answers to common questions about shopping with AI-SaleBD.
-            </p>
+            <div>
+              <h2 className="text-sm font-bold text-white sm:text-base">
+                Need Help Choosing a Product?
+              </h2>
+              <p className="mt-1 text-[11px] text-[#AAA3C1] sm:text-xs">
+                Contact our team for product and ordering assistance.
+              </p>
+            </div>
           </div>
 
-          <div className="mx-auto max-w-3xl space-y-3">
-            {faqs.map((faq, index) => {
-              const isOpen = activeFaq === index;
-
-              return (
-                <div
-                  key={faq.question}
-                  className="overflow-hidden rounded-xl border border-white/10 bg-[#211B3B]"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setActiveFaq(isOpen ? -1 : index)}
-                    aria-expanded={isOpen}
-                    className="flex w-full items-center justify-between gap-4 p-5 text-left"
-                  >
-                    <span className="text-sm font-semibold text-white sm:text-base">
-                      {faq.question}
-                    </span>
-
-                    <ChevronDown
-                      size={19}
-                      className={`shrink-0 text-[#B99AFF] transition-transform ${
-                        isOpen ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-
-                  {isOpen && (
-                    <div className="border-t border-white/5 px-5 py-4">
-                      <p className="text-sm leading-7 text-[#AAA3C1]">
-                        {faq.answer}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-8 text-center">
-            <Link
-              to="/faq"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[#B99AFF] transition hover:text-white"
-            >
-              View All FAQs
-              <ArrowRight size={16} />
-            </Link>
-          </div>
+          <button
+            type="button"
+            onClick={handleWhatsApp}
+            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-green-600 active:scale-95 sm:text-sm"
+          >
+            <MessageCircle size={16} />
+            Chat on WhatsApp
+          </button>
         </div>
       </section>
 
-      {/* FINAL CTA */}
-      <section className="container-custom py-14 sm:py-20">
-        <div className="relative overflow-hidden rounded-3xl border border-purple-500/20 bg-gradient-to-br from-[#29194C] via-[#211B3B] to-[#17243E] px-6 py-12 text-center sm:px-12 sm:py-16">
-          <div className="pointer-events-none absolute -left-20 -top-20 h-64 w-64 rounded-full bg-purple-500/20 blur-[90px]" />
-
-          <div className="pointer-events-none absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-blue-500/20 blur-[90px]" />
-
-          <div className="relative">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-500/20 text-[#B99AFF]">
-              <Sparkles size={27} />
-            </div>
-
-            <h2 className="mt-6 text-2xl font-extrabold text-white sm:text-4xl">
-              Ready to Explore AI Tools?
-            </h2>
-
-            <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[#C0B9D2]">
-              Discover powerful AI tools, premium subscriptions and digital
-              products to make your everyday work easier.
-            </p>
-
-            <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-              <Link
-                to="/category/ai-tools"
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-purple-600 px-7 py-3 text-sm font-bold text-white transition hover:bg-purple-700"
-              >
-                Explore AI Tools
-                <ArrowRight size={17} />
-              </Link>
-
-              <Link
-                to="/contact"
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-7 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-              >
-                <MessageCircle size={17} />
-                Contact Us
-              </Link>
-            </div>
+      {/* FAQ */}
+      <section className="container-custom py-8 sm:py-12">
+        <div className="mx-auto mb-6 max-w-xl text-center sm:mb-8">
+          <div className="mb-2 flex items-center justify-center gap-2 text-xs font-bold text-[#B99AFF]">
+            <HelpCircle size={15} />
+            NEED TO KNOW
           </div>
+
+          <h2 className="text-xl font-extrabold text-white sm:text-2xl lg:text-3xl">
+            Frequently Asked Questions
+          </h2>
+
+          <p className="mt-2 text-xs text-[#AAA3C1] sm:text-sm">
+            Find answers to common questions about AI-SaleBD.
+          </p>
+        </div>
+
+        <div className="mx-auto max-w-3xl space-y-2.5">
+          {faqs.map((faq, index) => {
+            const isOpen = openFaq === index;
+
+            return (
+              <div
+                key={faq.question}
+                className="overflow-hidden rounded-xl border border-white/10 bg-[#211B3B]/70"
+              >
+                <button
+                  type="button"
+                  onClick={() => setOpenFaq(isOpen ? -1 : index)}
+                  aria-expanded={isOpen}
+                  className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left sm:px-5"
+                >
+                  <span className="text-xs font-semibold text-white sm:text-sm">
+                    {faq.question}
+                  </span>
+
+                  <ChevronDown
+                    size={18}
+                    className={`shrink-0 text-[#B99AFF] transition-transform duration-300 ${
+                      isOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {isOpen && (
+                  <div className="border-t border-white/[0.07] px-4 py-4 text-xs leading-6 text-[#AAA3C1] sm:px-5 sm:text-sm">
+                    {faq.answer}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
     </div>

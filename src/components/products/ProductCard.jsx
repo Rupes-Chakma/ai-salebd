@@ -20,13 +20,13 @@ function ProductCard({ product }) {
     oldPrice: isDark ? "text-slate-500" : "text-slate-400",
 
     button: isDark
-      ? "border-violet-400/30 bg-violet-500/10 text-violet-300 hover:border-violet-500 hover:bg-violet-600"
-      : "border-violet-200 bg-violet-50 text-violet-700 hover:border-violet-600 hover:bg-violet-600",
+      ? "border-violet-400/30 bg-violet-500/10 text-violet-300 hover:border-violet-500 hover:bg-violet-600 hover:text-white"
+      : "border-violet-200 bg-violet-50 text-violet-700 hover:border-violet-600 hover:bg-violet-600 hover:text-white",
   };
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-violet-900/10 ${theme.card}`}
+      className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-violet-900/10 ${theme.card}`}
     >
       {/* Product Image */}
       <Link
@@ -38,7 +38,7 @@ function ProductCard({ product }) {
             src={product.image}
             alt={product.name || "Product"}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+            className="h-full w-full object-cover transition-transform duration-700 sm:group-hover:scale-110"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
@@ -54,21 +54,21 @@ function ProductCard({ product }) {
         />
 
         {product.badge && (
-          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-violet-600 px-3 py-1.5 text-[10px] font-bold text-white shadow-lg sm:text-xs">
+          <span className="absolute left-2.5 top-2.5 inline-flex max-w-[85%] items-center gap-1 rounded-full border border-white/15 bg-violet-600 px-2.5 py-1.5 text-[10px] font-bold text-white shadow-lg sm:left-3 sm:top-3 sm:gap-1.5 sm:px-3 sm:text-xs">
             <Sparkles size={12} />
-            {product.badge}
+            <span className="truncate">{product.badge}</span>
           </span>
         )}
 
-        <span className="absolute bottom-3 right-3 flex h-9 w-9 translate-y-2 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white opacity-0 backdrop-blur-md transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+        <span className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white opacity-100 backdrop-blur-md transition-all duration-300 sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100">
           <ArrowUpRight size={18} />
         </span>
       </Link>
 
       {/* Product Details */}
-      <div className="p-3.5 sm:p-4">
+      <div className="p-3 sm:p-4">
         <p
-          className={`text-[10px] font-bold uppercase tracking-[1.5px] sm:text-xs ${theme.category}`}
+          className={`truncate text-[10px] font-bold uppercase tracking-wider sm:text-xs sm:tracking-[1.5px] ${theme.category}`}
         >
           {typeof product.category === "object"
             ? product.category?.name
@@ -77,14 +77,14 @@ function ProductCard({ product }) {
 
         <Link to={productDetailsUrl}>
           <h3
-            className={`mt-2 line-clamp-2 min-h-10 text-sm font-bold leading-5 transition-colors duration-200 group-hover:text-violet-500 sm:text-base ${theme.name}`}
+            className={`mt-1.5 line-clamp-2 min-h-10 text-[13px] font-bold leading-5 transition-colors duration-200 group-hover:text-violet-500 sm:mt-2 sm:text-base ${theme.name}`}
           >
             {product.name}
           </h3>
         </Link>
 
         {/* Price */}
-        <div className="mt-3 flex min-h-7 flex-wrap items-center gap-2">
+        <div className="mt-2.5 flex min-h-7 flex-wrap items-center gap-x-2 gap-y-1 sm:mt-3">
           <span
             className={`text-base font-extrabold tracking-tight sm:text-lg ${theme.price}`}
           >
@@ -93,7 +93,7 @@ function ProductCard({ product }) {
 
           {product.oldPrice != null && product.oldPrice !== "" && (
             <span
-              className={`text-xs font-medium line-through ${theme.oldPrice}`}
+              className={`text-[11px] font-medium line-through sm:text-xs ${theme.oldPrice}`}
             >
               ৳{product.oldPrice}
             </span>
@@ -103,7 +103,7 @@ function ProductCard({ product }) {
         {/* Product Details Button */}
         <Link
           to={productDetailsUrl}
-          className={`mt-4 flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold text-white transition-all duration-300 hover:shadow-lg hover:shadow-violet-900/20 sm:text-sm ${theme.button}`}
+          className={`mt-3 flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-[11px] font-bold transition-all duration-300 hover:shadow-lg hover:shadow-violet-900/20 sm:mt-4 sm:gap-2 sm:px-3 sm:text-sm ${theme.button}`}
         >
           <ShoppingBag size={15} />
           View Product

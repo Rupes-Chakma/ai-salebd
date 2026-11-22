@@ -28,6 +28,7 @@ const initialForm = {
   badge: "",
   status: "Active",
   deliveryType: "Manual",
+  showOnSlider: false,
   variants: [{ ...initialVariant }],
 };
 
@@ -58,9 +59,11 @@ function EditProduct() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Load existing product
+  // Load existing product information
   useEffect(() => {
     if (!product) return;
+
+    setIsLoaded(false);
 
     setForm({
       name: product.name || "",
@@ -73,6 +76,12 @@ function EditProduct() {
       badge: product.badge || "",
       status: product.status || "Active",
       deliveryType: product.deliveryType || "Manual",
+
+      // Restore previously saved slider selection
+      showOnSlider:
+        product.showOnSlider === true ||
+        product.showOnSlider === "true" ||
+        product.showOnSlider === 1,
 
       variants:
         Array.isArray(product.variants) && product.variants.length > 0
@@ -89,7 +98,6 @@ function EditProduct() {
     setIsLoaded(true);
   }, [product]);
 
-  // Handle basic input changes
   const handleChange = (event) => {
     const { name, value } = event.target;
 
@@ -99,7 +107,6 @@ function EditProduct() {
     }));
   };
 
-  // Handle variant changes
   const handleVariantChange = (index, field, value) => {
     setForm((prev) => ({
       ...prev,
@@ -109,7 +116,6 @@ function EditProduct() {
     }));
   };
 
-  // Add variant
   const addVariant = () => {
     setForm((prev) => ({
       ...prev,
@@ -117,7 +123,6 @@ function EditProduct() {
     }));
   };
 
-  // Remove variant
   const removeVariant = (index) => {
     setForm((prev) => ({
       ...prev,
@@ -125,7 +130,6 @@ function EditProduct() {
     }));
   };
 
-  // Save product
   const handleSubmit = (event) => {
     event.preventDefault();
 
@@ -149,7 +153,6 @@ function EditProduct() {
       return;
     }
 
-    // Validate every variant before saving
     const validVariants = [];
 
     for (let index = 0; index < form.variants.length; index += 1) {
@@ -157,13 +160,13 @@ function EditProduct() {
 
       const hasName = variant.name.trim() !== "";
       const hasPrice = variant.price !== "";
+
       const hasAnyValue =
         hasName ||
         hasPrice ||
         String(variant.stock).trim() !== "" ||
         variant.sku.trim() !== "";
 
-      // Ignore a completely empty extra variant
       if (!hasAnyValue) continue;
 
       if (!hasName || !hasPrice) {
@@ -211,9 +214,12 @@ function EditProduct() {
       price: productPrice,
       oldPrice,
       variants: validVariants,
-      path: `/category/${slug}`,
+      path: product.path || `/category/${slug}`,
       status: form.status,
       deliveryType: form.deliveryType,
+
+      // Save slider selection as a Boolean
+      showOnSlider: Boolean(form.showOnSlider),
     };
 
     try {
@@ -235,7 +241,6 @@ function EditProduct() {
 
   const labelClass = "text-sm font-medium text-[#AAA3C1]";
 
-  // Product not found
   if (!product) {
     return (
       <div className="rounded-2xl border border-white/10 bg-[#211B3B] p-10 text-center">
@@ -266,7 +271,6 @@ function EditProduct() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      {/* Header */}
       <div>
         <button
           type="button"
@@ -361,7 +365,6 @@ function EditProduct() {
             />
           </label>
 
-          {/* Image Preview */}
           {form.image.trim() ? (
             <div className="mt-5">
               <p className={labelClass}>Image Preview</p>
@@ -586,6 +589,31 @@ function EditProduct() {
               </select>
             </label>
           </div>
+
+          {/* Homepage Slider Selection */}
+          <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-[#171326] p-4">
+            <input
+              type="checkbox"
+              checked={form.showOnSlider}
+              onChange={(event) =>
+                setForm((prev) => ({
+                  ...prev,
+                  showOnSlider: event.target.checked,
+                }))
+              }
+              className="mt-1 h-4 w-4 accent-purple-500"
+            />
+
+            <span>
+              <span className="block text-sm font-semibold text-white">
+                Show on Homepage Slider
+              </span>
+              <span className="mt-1 block text-xs leading-5 text-[#AAA3C1]">
+                Display this product in the homepage hero banner. Only active
+                products selected for the slider will be displayed.
+              </span>
+            </span>
+          </label>
         </section>
 
         {/* Actions */}

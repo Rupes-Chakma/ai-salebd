@@ -15,6 +15,7 @@ import {
   MessageCircle,
   Sparkles,
   ArrowRight,
+  ChevronRight,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -28,6 +29,14 @@ const formatPrice = (price) => `৳${Number(price || 0).toLocaleString("en-BD")}
 const safeQuantity = (quantity) => {
   const value = Math.floor(Number(quantity));
   return Number.isFinite(value) ? Math.max(1, Math.min(99, value)) : 1;
+};
+
+const getCategoryName = (category) => {
+  if (!category) return "Digital Product";
+
+  if (typeof category === "string") return category;
+
+  return category.name || category.title || category.slug || "Digital Product";
 };
 
 function Cart() {
@@ -45,7 +54,7 @@ function Cart() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [removeItemId, setRemoveItemId] = useState(null);
 
-  // Validate cart items against current product information
+  // Validate Cart Items
   const validatedItems = useMemo(() => {
     return safeCartItems.map((item) => {
       const currentProduct = safeProducts.find(
@@ -54,7 +63,11 @@ function Cart() {
 
       const quantity = safeQuantity(item.quantity);
 
-      if (!currentProduct || currentProduct.status !== "Active") {
+      // Keep the same active-product rule used in Shop
+      if (
+        !currentProduct ||
+        (currentProduct.status && currentProduct.status !== "Active")
+      ) {
         return {
           ...item,
           currentProduct,
@@ -110,6 +123,7 @@ function Cart() {
         : currentProduct.stock;
 
       const stock = Number(stockValue);
+
       const hasStockLimit =
         stockValue !== undefined &&
         stockValue !== null &&
@@ -193,7 +207,7 @@ function Cart() {
     toast.success("Cart cleared successfully");
   };
 
-  // WhatsApp Cart Checkout
+  // WhatsApp Checkout
   const handleWhatsAppCheckout = () => {
     if (safeCartItems.length === 0) {
       toast.error("Your cart is empty");
@@ -217,11 +231,6 @@ function Cart() {
       ].join("\n");
     });
 
-    const currentSubtotal = validatedItems.reduce(
-      (total, item) => total + item.currentPrice * item.quantity,
-      0,
-    );
-
     const message = [
       "Hello AI-SaleBD! I want to place an order.",
       "",
@@ -231,7 +240,7 @@ function Cart() {
       "",
       "-------------------------",
       `Total Products: ${totalQuantity}`,
-      `Grand Total: ${formatPrice(currentSubtotal)}`,
+      `Grand Total: ${formatPrice(subtotal)}`,
       "",
       "Please confirm my order.",
       "",
@@ -246,15 +255,18 @@ function Cart() {
   // Empty Cart
   if (safeCartItems.length === 0) {
     return (
-      <div className="container-custom flex min-h-[70vh] items-center justify-center py-16">
-        <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-[#211B3B] px-6 py-12 text-center shadow-2xl shadow-purple-950/20">
+      <div className="container-custom flex min-h-[70vh] items-center justify-center px-3 py-10 sm:px-0 sm:py-16">
+        <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-[#211B3B] px-5 py-10 text-center shadow-2xl shadow-purple-950/20 sm:px-8 sm:py-12">
           <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-purple-600/10 blur-3xl" />
 
-          <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-3xl border border-[#8B5CF6]/20 bg-[#2B2149] shadow-lg shadow-purple-950/20">
-            <ShoppingCart size={42} className="text-[#B99AFF]" />
+          <div className="relative mx-auto flex h-20 w-20 items-center justify-center rounded-3xl border border-[#8B5CF6]/20 bg-[#2B2149] shadow-lg shadow-purple-950/20 sm:h-24 sm:w-24">
+            <ShoppingCart
+              size={36}
+              className="text-[#B99AFF] sm:h-10 sm:w-10"
+            />
           </div>
 
-          <div className="relative mt-7">
+          <div className="relative mt-6">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-400/20 bg-purple-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-purple-300">
               <Sparkles size={12} />
               AI-SaleBD Store
@@ -264,14 +276,14 @@ function Cart() {
               Your Cart is Empty
             </h1>
 
-            <p className="mt-3 text-sm leading-7 text-[#AAA3C1]">
+            <p className="mx-auto mt-3 max-w-sm text-sm leading-7 text-[#AAA3C1]">
               Looks like you haven't added anything to your cart yet. Explore
               our premium digital products and find something you love.
             </p>
 
             <Link
               to="/shop"
-              className="mt-7 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] px-7 py-3.5 text-sm font-bold text-white shadow-lg shadow-purple-900/20 transition hover:-translate-y-0.5 hover:shadow-purple-500/20"
+              className="mt-7 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-purple-900/20 transition hover:-translate-y-0.5 hover:shadow-purple-500/20 sm:w-auto"
             >
               <ShoppingBag size={18} />
               Explore Products
@@ -288,23 +300,24 @@ function Cart() {
   }
 
   return (
-    <div className="container-custom py-8 sm:py-12">
+    <div className="container-custom px-3 py-6 sm:px-0 sm:py-10">
       {/* Page Header */}
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
+      <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
           <Link
             to="/shop"
-            className="inline-flex items-center gap-2 text-sm text-[#AAA3C1] transition hover:text-white"
+            className="inline-flex min-h-9 items-center gap-2 text-sm text-[#AAA3C1] transition hover:text-white"
           >
             <ArrowLeft size={16} />
             Continue Shopping
           </Link>
 
-          <div className="mt-5 flex items-center gap-2">
+          <div className="mt-4 flex items-center gap-2">
             <span className="rounded-lg border border-purple-400/20 bg-purple-500/10 p-2 text-[#B99AFF]">
-              <ShoppingCart size={20} />
+              <ShoppingCart size={19} />
             </span>
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#B99AFF]">
+
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#B99AFF] sm:text-xs">
               Your Shopping Bag
             </span>
           </div>
@@ -313,7 +326,7 @@ function Cart() {
             Shopping Cart
           </h1>
 
-          <p className="mt-2 text-sm text-[#AAA3C1]">
+          <p className="mt-2 text-xs text-[#AAA3C1] sm:text-sm">
             You have {totalQuantity} item(s) in your cart
           </p>
         </div>
@@ -321,7 +334,7 @@ function Cart() {
         <button
           type="button"
           onClick={() => setShowClearConfirm(true)}
-          className="flex items-center gap-2 rounded-xl border border-red-400/20 bg-red-400/5 px-4 py-2.5 text-xs font-semibold text-red-400 transition hover:bg-red-400/10"
+          className="inline-flex min-h-10 w-fit items-center justify-center gap-2 self-start rounded-xl border border-red-400/20 bg-red-400/5 px-4 py-2.5 text-xs font-semibold text-red-400 transition hover:bg-red-400/10 sm:self-auto"
         >
           <Trash2 size={15} />
           Clear Cart
@@ -330,10 +343,10 @@ function Cart() {
 
       {/* Unavailable Product Warning */}
       {hasUnavailableItems && (
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4">
+        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-3.5 sm:p-4">
           <AlertTriangle size={20} className="mt-0.5 shrink-0 text-amber-400" />
 
-          <div>
+          <div className="min-w-0">
             <h3 className="text-sm font-bold text-amber-300">
               Some cart items need attention
             </h3>
@@ -348,125 +361,128 @@ function Cart() {
       )}
 
       {/* Cart Layout */}
-      <div className="grid items-start gap-6 lg:grid-cols-[1fr_360px]">
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6">
         {/* Cart Products */}
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-3 sm:space-y-4">
           {validatedItems.map((item) => {
             const isUnavailable = Boolean(item.issue);
 
             return (
               <div
                 key={item.cartId}
-                className={`group relative flex gap-3 overflow-hidden rounded-2xl border bg-[#211B3B] p-3 transition duration-300 hover:border-purple-400/30 sm:gap-5 sm:p-5 ${
+                className={`group relative overflow-hidden rounded-2xl border bg-[#211B3B] p-3 transition duration-300 sm:p-5 ${
                   isUnavailable
-                    ? "border-amber-400/40 opacity-80"
-                    : "border-white/10"
+                    ? "border-amber-400/40"
+                    : "border-white/10 hover:border-purple-400/30"
                 }`}
               >
-                {/* Product Image */}
-                <Link
-                  to={`/product/${item.productId}`}
-                  className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-white/5 bg-[#11101C] sm:h-32 sm:w-32"
-                >
-                  {item.image ? (
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-purple-400">
-                      <ShoppingBag size={30} />
-                    </div>
-                  )}
-                </Link>
+                {/* Product Main Row */}
+                <div className="flex min-w-0 gap-3 sm:gap-5">
+                  {/* Product Image */}
+                  <Link
+                    to={`/product/${item.productId}`}
+                    className="h-[82px] w-[82px] shrink-0 overflow-hidden rounded-xl border border-white/5 bg-[#11101C] sm:h-32 sm:w-32"
+                  >
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-purple-400">
+                        <ShoppingBag size={28} />
+                      </div>
+                    )}
+                  </Link>
 
-                {/* Product Details */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#38BDF8]">
-                        {item.category}
-                      </p>
+                  {/* Product Details */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="mb-1 truncate text-[9px] font-bold uppercase tracking-wider text-[#38BDF8] sm:text-[10px]">
+                          {getCategoryName(item.category)}
+                        </p>
 
-                      <Link
-                        to={`/product/${item.productId}`}
-                        className="line-clamp-2 text-sm font-bold text-white transition hover:text-[#B99AFF] sm:text-base"
+                        <Link
+                          to={`/product/${item.productId}`}
+                          className="line-clamp-2 text-[13px] font-bold leading-5 text-white transition hover:text-[#B99AFF] sm:text-base sm:leading-6"
+                        >
+                          {item.name}
+                        </Link>
+
+                        <p className="mt-1 truncate text-[11px] text-[#B99AFF] sm:text-xs">
+                          Package: {item.variantName || "Default"}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setRemoveItemId(item.cartId)}
+                        aria-label={`Remove ${item.name}`}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#AAA3C1] transition hover:bg-red-500/10 hover:text-red-400 sm:h-10 sm:w-10"
                       >
-                        {item.name}
-                      </Link>
-
-                      <p className="mt-1 text-xs text-[#B99AFF]">
-                        Package: {item.variantName || "Default"}
-                      </p>
-
-                      {isUnavailable && (
-                        <span className="mt-2 inline-block rounded-md bg-amber-400/10 px-2 py-1 text-[10px] font-bold text-amber-300">
-                          {item.issue === "unavailable" &&
-                            "Product Unavailable"}
-                          {item.issue === "variant-unavailable" &&
-                            "Package Unavailable"}
-                          {item.issue === "invalid-price" && "Invalid Price"}
-                          {item.issue === "out-of-stock" && "Out of Stock"}
-                          {item.issue === "insufficient-stock" &&
-                            `Only ${item.availableStock} available`}
-                        </span>
-                      )}
+                        <Trash2 size={16} />
+                      </button>
                     </div>
+
+                    {isUnavailable && (
+                      <span className="mt-2 inline-block max-w-full rounded-md bg-amber-400/10 px-2 py-1 text-[10px] font-bold text-amber-300">
+                        {item.issue === "unavailable" && "Product Unavailable"}
+                        {item.issue === "variant-unavailable" &&
+                          "Package Unavailable"}
+                        {item.issue === "invalid-price" && "Invalid Price"}
+                        {item.issue === "out-of-stock" && "Out of Stock"}
+                        {item.issue === "insufficient-stock" &&
+                          `Only ${item.availableStock} available`}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quantity and Price */}
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-3 sm:mt-4 sm:pt-4">
+                  {/* Quantity Controls */}
+                  <div className="flex h-10 items-center gap-1 rounded-xl border border-white/10 bg-[#11101C]/70 p-1 sm:h-11">
+                    <button
+                      type="button"
+                      disabled={item.quantity <= 1}
+                      onClick={() =>
+                        updateQuantity(item.cartId, item.quantity - 1)
+                      }
+                      aria-label="Decrease quantity"
+                      className="flex h-8 w-9 items-center justify-center rounded-lg text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30 sm:h-9 sm:w-10"
+                    >
+                      <Minus size={15} />
+                    </button>
+
+                    <span className="min-w-7 text-center text-sm font-bold text-white">
+                      {item.quantity}
+                    </span>
 
                     <button
                       type="button"
-                      onClick={() => setRemoveItemId(item.cartId)}
-                      aria-label={`Remove ${item.name}`}
-                      className="shrink-0 rounded-lg p-2 text-[#AAA3C1] transition hover:bg-red-500/10 hover:text-red-400"
+                      disabled={item.quantity >= 99}
+                      onClick={() =>
+                        updateQuantity(item.cartId, item.quantity + 1)
+                      }
+                      aria-label="Increase quantity"
+                      className="flex h-8 w-9 items-center justify-center rounded-lg text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30 sm:h-9 sm:w-10"
                     >
-                      <Trash2 size={17} />
+                      <Plus size={15} />
                     </button>
                   </div>
 
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                    {/* Quantity */}
-                    <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#11101C]/60 p-1">
-                      <button
-                        type="button"
-                        disabled={item.quantity <= 1}
-                        onClick={() =>
-                          updateQuantity(item.cartId, item.quantity - 1)
-                        }
-                        aria-label="Decrease quantity"
-                        className="rounded-lg p-1.5 text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
-                      >
-                        <Minus size={14} />
-                      </button>
+                  {/* Item Price */}
+                  <div className="min-w-0 text-right">
+                    <p className="text-[10px] text-[#AAA3C1]">
+                      Unit Price: {formatPrice(item.currentPrice)}
+                    </p>
 
-                      <span className="min-w-5 text-center text-sm font-bold text-white">
-                        {item.quantity}
-                      </span>
-
-                      <button
-                        type="button"
-                        disabled={item.quantity >= 99}
-                        onClick={() =>
-                          updateQuantity(item.cartId, item.quantity + 1)
-                        }
-                        aria-label="Increase quantity"
-                        className="rounded-lg p-1.5 text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
-                      >
-                        <Plus size={14} />
-                      </button>
-                    </div>
-
-                    {/* Item Total */}
-                    <div className="text-right">
-                      <p className="text-[10px] text-[#AAA3C1]">
-                        Unit Price: {formatPrice(item.currentPrice)}
-                      </p>
-
-                      <p className="text-sm font-extrabold text-white sm:text-base">
-                        {formatPrice(item.currentPrice * item.quantity)}
-                      </p>
-                    </div>
+                    <p className="mt-0.5 text-sm font-extrabold text-white sm:text-base">
+                      {formatPrice(item.currentPrice * item.quantity)}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -475,16 +491,17 @@ function Cart() {
 
           <Link
             to="/shop"
-            className="inline-flex items-center gap-2 pt-2 text-sm font-semibold text-[#B99AFF] transition hover:text-white"
+            className="inline-flex min-h-11 items-center gap-2 pt-1 text-sm font-semibold text-[#B99AFF] transition hover:text-white"
           >
-            <Plus size={16} />
+            <Plus size={17} />
             Add More Products
+            <ChevronRight size={15} />
           </Link>
         </div>
 
         {/* Order Summary */}
-        <aside className="lg:sticky lg:top-24">
-          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#211B3B] p-5 sm:p-6">
+        <aside className="min-w-0 lg:sticky lg:top-24">
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#211B3B] p-4 sm:p-6">
             <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-purple-600/10 blur-3xl" />
 
             <div className="relative">
@@ -503,7 +520,7 @@ function Cart() {
               </p>
 
               {/* Coupon */}
-              <form onSubmit={handleCoupon} className="mt-6">
+              <form onSubmit={handleCoupon} className="mt-5 sm:mt-6">
                 <label className="mb-2 flex items-center gap-2 text-xs font-semibold text-white">
                   <TicketPercent size={16} className="text-[#B99AFF]" />
                   Coupon Code
@@ -515,12 +532,12 @@ function Cart() {
                     value={coupon}
                     onChange={(e) => setCoupon(e.target.value)}
                     placeholder="Enter coupon code"
-                    className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#11101C] px-3 py-3 text-xs text-white outline-none placeholder:text-[#77718D] transition focus:border-[#8B5CF6]"
+                    className="min-h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-[#11101C] px-3 py-3 text-xs text-white outline-none placeholder:text-[#77718D] transition focus:border-[#8B5CF6]"
                   />
 
                   <button
                     type="submit"
-                    className="rounded-xl border border-[#8B5CF6]/40 bg-[#8B5CF6]/10 px-4 text-xs font-bold text-[#B99AFF] transition hover:bg-[#8B5CF6]/20"
+                    className="min-h-11 shrink-0 rounded-xl border border-[#8B5CF6]/40 bg-[#8B5CF6]/10 px-4 text-xs font-bold text-[#B99AFF] transition hover:bg-[#8B5CF6]/20"
                   >
                     Apply
                   </button>
@@ -571,9 +588,10 @@ function Cart() {
                 type="button"
                 onClick={handleWhatsAppCheckout}
                 disabled={hasUnavailableItems}
-                className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-green-950/20 transition hover:-translate-y-0.5 hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-600 disabled:opacity-60"
+                className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-green-950/20 transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-600 disabled:opacity-60 sm:mt-6"
               >
                 <MessageCircle size={19} />
+
                 {hasUnavailableItems
                   ? "Review Cart Items First"
                   : "Checkout via WhatsApp"}
@@ -609,7 +627,7 @@ function Cart() {
                   href={`https://wa.me/${WHATSAPP_NUMBER}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-2 inline-block text-xs font-bold text-[#38BDF8] hover:underline"
+                  className="mt-2 inline-flex min-h-9 items-center text-xs font-bold text-[#38BDF8] hover:underline"
                 >
                   Contact Support
                 </a>
@@ -621,13 +639,24 @@ function Cart() {
 
       {/* Clear Cart Confirmation */}
       {showClearConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#211B3B] p-6 shadow-2xl">
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => setShowClearConfirm(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="clear-cart-title"
+            className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#211B3B] p-5 shadow-2xl sm:p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10 text-red-400">
               <Trash2 size={22} />
             </div>
 
-            <h3 className="text-lg font-bold text-white">Clear your cart?</h3>
+            <h3 id="clear-cart-title" className="text-lg font-bold text-white">
+              Clear your cart?
+            </h3>
 
             <p className="mt-2 text-sm leading-6 text-[#AAA3C1]">
               Are you sure you want to remove all products from your cart?
@@ -637,7 +666,7 @@ function Cart() {
               <button
                 type="button"
                 onClick={() => setShowClearConfirm(false)}
-                className="flex-1 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/5"
+                className="min-h-11 flex-1 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/5"
               >
                 Cancel
               </button>
@@ -645,7 +674,7 @@ function Cart() {
               <button
                 type="button"
                 onClick={handleClearCart}
-                className="flex-1 rounded-xl bg-red-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-600"
+                className="min-h-11 flex-1 rounded-xl bg-red-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-600"
               >
                 Clear Cart
               </button>
@@ -656,16 +685,30 @@ function Cart() {
 
       {/* Remove Product Confirmation */}
       {removeItemId && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#211B3B] p-6 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-white">Remove Product?</h3>
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => setRemoveItemId(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="remove-cart-title"
+            className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#211B3B] p-5 shadow-2xl sm:p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <h3
+                id="remove-cart-title"
+                className="text-lg font-bold text-white"
+              >
+                Remove Product?
+              </h3>
 
               <button
                 type="button"
                 onClick={() => setRemoveItemId(null)}
                 aria-label="Close confirmation"
-                className="rounded-lg p-2 text-[#AAA3C1] transition hover:bg-white/10 hover:text-white"
+                className="flex h-10 w-10 items-center justify-center rounded-lg text-[#AAA3C1] transition hover:bg-white/10 hover:text-white"
               >
                 <X size={18} />
               </button>
@@ -679,7 +722,7 @@ function Cart() {
               <button
                 type="button"
                 onClick={() => setRemoveItemId(null)}
-                className="flex-1 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/5"
+                className="min-h-11 flex-1 rounded-xl border border-white/10 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/5"
               >
                 Cancel
               </button>
@@ -687,7 +730,7 @@ function Cart() {
               <button
                 type="button"
                 onClick={() => handleRemove(removeItemId)}
-                className="flex-1 rounded-xl bg-red-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-600"
+                className="min-h-11 flex-1 rounded-xl bg-red-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-600"
               >
                 Remove
               </button>
