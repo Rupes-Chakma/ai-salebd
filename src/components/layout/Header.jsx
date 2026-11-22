@@ -144,6 +144,7 @@ const Header = () => {
   useEffect(() => {
     const handlePointerDown = (event) => {
       const insideDesktop = desktopSearchRef.current?.contains(event.target);
+
       const insideMobile = mobileSearchRef.current?.contains(event.target);
 
       if (!insideDesktop && !insideMobile) {
@@ -209,14 +210,14 @@ const Header = () => {
     if (!showSuggestions || !search.trim()) return null;
 
     return (
-      <div className="absolute left-0 right-0 top-full z-[100] mt-2 max-h-[min(65vh,420px)] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#19162B] shadow-2xl shadow-black/60">
+      <div className="absolute left-0 right-0 top-full z-[100] mt-2 max-h-[min(65vh,420px)] overflow-x-hidden overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#19162B] shadow-2xl shadow-black/60">
         {suggestions.length > 0 ? (
           <>
-            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+            <div className="flex items-center justify-between border-b border-white/10 px-3 py-3 sm:px-4">
               <p className="text-[10px] font-bold tracking-[0.16em] text-[#AAA3C1]">
                 SUGGESTED PRODUCTS
               </p>
-              <Sparkles size={15} className="text-[#A78BFA]" />
+              <Sparkles size={15} className="shrink-0 text-[#A78BFA]" />
             </div>
 
             {suggestions.map((product) => (
@@ -224,9 +225,9 @@ const Header = () => {
                 key={product.id}
                 type="button"
                 onClick={() => selectProduct(product.id)}
-                className="flex min-h-[68px] w-full items-center gap-3 border-b border-white/5 px-3 py-3 text-left transition-colors hover:bg-[#28213F] active:bg-[#30264F]"
+                className="flex min-h-[64px] w-full min-w-0 items-center gap-2 border-b border-white/5 px-3 py-2.5 text-left transition-colors hover:bg-[#28213F] active:bg-[#30264F] sm:gap-3 sm:px-4 sm:py-3"
               >
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-[#30264F]">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-[#30264F] sm:h-11 sm:w-11">
                   {product.image ? (
                     <img
                       src={product.image}
@@ -239,15 +240,15 @@ const Header = () => {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-white">
+                  <p className="truncate text-xs font-semibold text-white sm:text-sm">
                     {product.name}
                   </p>
-                  <p className="mt-1 truncate text-xs text-[#AAA3C1]">
+                  <p className="mt-1 truncate text-[10px] text-[#AAA3C1] sm:text-xs">
                     {getCategoryName(product.category)}
                   </p>
                 </div>
 
-                <span className="shrink-0 text-sm font-bold text-[#C4B5FD]">
+                <span className="max-w-[76px] shrink-0 truncate text-xs font-bold text-[#C4B5FD] sm:max-w-none sm:text-sm">
                   ৳{Number(product.price || 0).toLocaleString("en-BD")}
                 </span>
               </button>
@@ -281,15 +282,17 @@ const Header = () => {
     }`;
 
   return (
-    <header className="sticky top-0 z-50 w-full min-w-0 bg-[#100E1B]">
+    <header className="sticky top-0 z-50 w-full min-w-0 overflow-x-clip bg-[#100E1B]">
       {/* Announcement Bar */}
       <div className="overflow-hidden bg-gradient-to-r from-[#5420B8] via-[#6D28D9] to-[#2563EB] px-2 py-2 text-center text-[10px] font-semibold text-white sm:px-3 sm:text-sm">
         <div className="flex items-center justify-center gap-1.5">
           <Sparkles size={13} className="shrink-0 sm:h-4 sm:w-4" />
-          <span className="truncate">
+
+          <span className="min-w-0 truncate">
             <span className="sm:hidden">
               Welcome to AI-SaleBD — Premium AI Tools
             </span>
+
             <span className="hidden sm:inline">
               Welcome to AI-SaleBD — Your Gateway to Premium AI Tools
             </span>
@@ -299,12 +302,12 @@ const Header = () => {
 
       {/* Main Header */}
       <div className="border-b border-white/[0.08] bg-[#100E1B]">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-1.5 px-2.5 py-2.5 sm:gap-3 sm:px-6 sm:py-3 lg:px-8">
           {/* Brand */}
           <Link
             to="/"
             aria-label="AI-SaleBD Home"
-            className="group flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5"
+            className="group flex min-w-0 shrink items-center gap-1.5 sm:gap-2.5"
           >
             <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#2563EB] shadow-lg shadow-purple-500/20 transition duration-300 group-hover:scale-105 sm:h-11 sm:w-11">
               <Sparkles
@@ -315,10 +318,11 @@ const Header = () => {
             </div>
 
             <div className="min-w-0">
-              <h1 className="whitespace-nowrap text-[17px] font-black tracking-tight text-white sm:text-2xl">
+              <h1 className="whitespace-nowrap text-[15px] font-black tracking-tight text-white min-[360px]:text-[17px] sm:text-2xl">
                 AI-SaleBD<span className="text-[#A78BFA]">.</span>
               </h1>
-              <p className="-mt-0.5 hidden whitespace-nowrap text-[9px] font-semibold tracking-[0.16em] text-[#AAA3C1] min-[360px]:block">
+
+              <p className="-mt-0.5 hidden whitespace-nowrap text-[9px] font-semibold tracking-[0.16em] text-[#AAA3C1] min-[390px]:block">
                 PREMIUM AI TOOLS MARKETPLACE
               </p>
             </div>
@@ -393,7 +397,7 @@ const Header = () => {
           </div>
 
           {/* Mobile Actions */}
-          <div className="flex shrink-0 items-center gap-1.5 md:hidden">
+          <div className="flex shrink-0 items-center gap-1 md:hidden">
             <button
               type="button"
               onClick={() => {
@@ -402,7 +406,7 @@ const Header = () => {
               }}
               aria-label={mobileSearchOpen ? "Close search" : "Open search"}
               aria-expanded={mobileSearchOpen}
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-white transition hover:border-[#8B5CF6]/50 active:bg-white/10"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-white transition hover:border-[#8B5CF6]/50 active:bg-white/10 min-[360px]:h-10 min-[360px]:w-10"
             >
               {mobileSearchOpen ? <X size={20} /> : <Search size={20} />}
             </button>
@@ -410,9 +414,10 @@ const Header = () => {
             <Link
               to="/cart"
               aria-label={`Shopping cart, ${cartCount} items`}
-              className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-white transition hover:border-[#8B5CF6]/50 active:bg-white/10"
+              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-white transition hover:border-[#8B5CF6]/50 active:bg-white/10 min-[360px]:h-10 min-[360px]:w-10"
             >
-              <ShoppingCart size={20} />
+              <ShoppingCart size={19} />
+
               {cartCount > 0 && (
                 <span className="absolute -right-1 -top-1 flex h-[17px] min-w-[17px] items-center justify-center rounded-full border border-[#100E1B] bg-[#38BDF8] px-1 text-[9px] font-extrabold text-[#11101C]">
                   {cartCount > 99 ? "99+" : cartCount}
@@ -420,7 +425,9 @@ const Header = () => {
               )}
             </Link>
 
-            <MobileMenu />
+            <div className="shrink-0">
+              <MobileMenu />
+            </div>
           </div>
         </div>
 
@@ -428,11 +435,11 @@ const Header = () => {
         {mobileSearchOpen && (
           <div
             ref={mobileSearchRef}
-            className="border-t border-white/[0.08] bg-[#100E1B] px-3 py-3 md:hidden"
+            className="relative border-t border-white/[0.08] bg-[#100E1B] px-2.5 py-3 sm:px-3 md:hidden"
           >
-            <div className="relative">
+            <div className="relative min-w-0">
               <form onSubmit={handleSearch}>
-                <div className="flex min-h-12 items-center gap-2 rounded-xl border border-white/10 bg-[#1B172D] px-3 transition focus-within:border-[#8B5CF6]/70 focus-within:shadow-lg focus-within:shadow-purple-500/10">
+                <div className="flex min-h-11 min-w-0 items-center gap-1.5 rounded-xl border border-white/10 bg-[#1B172D] px-2.5 transition focus-within:border-[#8B5CF6]/70 focus-within:shadow-lg focus-within:shadow-purple-500/10 sm:min-h-12 sm:gap-2 sm:px-3">
                   <Search size={18} className="shrink-0 text-[#AAA3C1]" />
 
                   <input
@@ -445,7 +452,7 @@ const Header = () => {
                     }}
                     onFocus={() => setShowSuggestions(true)}
                     placeholder="Search AI tools..."
-                    className="min-w-0 flex-1 bg-transparent py-3 text-sm text-white outline-none placeholder:text-[#817A9A]"
+                    className="min-w-0 flex-1 bg-transparent py-3 text-xs text-white outline-none placeholder:text-[#817A9A] sm:text-sm"
                   />
 
                   {search && (
@@ -453,7 +460,7 @@ const Header = () => {
                       type="button"
                       onClick={clearSearch}
                       aria-label="Clear search"
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#AAA3C1] hover:bg-white/5 hover:text-white"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#AAA3C1] hover:bg-white/5 hover:text-white"
                     >
                       <X size={17} />
                     </button>
@@ -461,7 +468,7 @@ const Header = () => {
 
                   <button
                     type="submit"
-                    className="shrink-0 rounded-lg bg-gradient-to-r from-[#7C3AED] to-[#6366F1] px-3.5 py-2.5 text-xs font-bold text-white transition hover:brightness-110 active:scale-95"
+                    className="shrink-0 rounded-lg bg-gradient-to-r from-[#7C3AED] to-[#6366F1] px-2.5 py-2.5 text-[11px] font-bold text-white transition hover:brightness-110 active:scale-95 min-[360px]:px-3.5 min-[360px]:text-xs"
                   >
                     Search
                   </button>
