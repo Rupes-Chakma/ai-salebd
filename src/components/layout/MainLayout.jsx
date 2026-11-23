@@ -66,10 +66,11 @@ const FloatingActions = () => {
           pointer-events-auto
           flex h-11 w-11 shrink-0 items-center justify-center
           rounded-full border border-white/10
-          bg-[#292044] text-white
+          bg-[#171B17] text-white
           shadow-xl shadow-black/30
           transition-all duration-300
-          hover:scale-110 hover:bg-[#7048E8]
+          hover:scale-110 hover:border-[#DC2626]/50
+          hover:bg-[#DC2626] hover:text-white
           active:scale-95
           md:h-12 md:w-12
           ${
@@ -90,7 +91,7 @@ const FloatingActions = () => {
             absolute bottom-full right-0 mb-3
             w-[min(260px,calc(100vw-24px))]
             rounded-2xl border border-white/10
-            bg-[#211B3B] p-4
+            bg-[#111411] p-4
             shadow-2xl shadow-black/40
             transition-all duration-300
             ${
@@ -105,14 +106,14 @@ const FloatingActions = () => {
           `}
         >
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-green-500/10 text-green-400">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-green-500/15 bg-green-500/10 text-green-400">
               <Headset size={22} />
             </div>
 
             <div className="min-w-0">
               <p className="text-sm font-bold text-white">Need Help?</p>
 
-              <p className="mt-1 text-xs text-[#AAA3C1]">
+              <p className="mt-1 text-xs text-[#A3AAA3]">
                 We're here to help you!
               </p>
             </div>
@@ -132,7 +133,16 @@ const FloatingActions = () => {
           <button
             type="button"
             onClick={handleWhatsApp}
-            className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-green-500 py-2.5 text-sm font-semibold text-white transition hover:bg-green-600 active:scale-[0.98]"
+            className="
+              mt-3 flex min-h-11 w-full items-center justify-center gap-2
+              rounded-xl border border-green-500/30
+              bg-[#171B17] py-2.5
+              text-sm font-semibold text-green-400
+              transition duration-200
+              hover:border-green-500/60
+              hover:bg-green-500/10
+              active:scale-[0.98]
+            "
           >
             <MessageCircle size={18} />
             Chat on WhatsApp
@@ -150,8 +160,10 @@ const FloatingActions = () => {
             className="
               flex h-10 w-10 shrink-0 items-center justify-center
               rounded-full border border-white/10
-              bg-[#292044] text-white shadow-lg
-              transition hover:bg-[#7048E8]
+              bg-[#171B17] text-white shadow-lg
+              transition duration-200
+              hover:border-[#DC2626]/50
+              hover:bg-[#DC2626]
               active:scale-95 md:hidden
             "
           >
@@ -194,7 +206,7 @@ const FloatingActions = () => {
 
 const MainLayout = ({ children }) => {
   return (
-    <div className="flex min-h-screen min-w-0 flex-col overflow-x-clip bg-[#11101C]">
+    <div className="flex min-h-screen min-w-0 flex-col overflow-x-clip bg-[#0B0D0B]">
       <Header />
 
       <main className="min-w-0 w-full flex-1">{children}</main>

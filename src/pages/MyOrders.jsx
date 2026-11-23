@@ -20,6 +20,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useTheme } from "../context/ThemeContext";
 
 const ORDER_KEY = "nexora-orders";
 
@@ -43,33 +44,33 @@ function getStatusStyle(status) {
   switch (status) {
     case "Completed":
       return {
-        color: "text-green-400",
-        bg: "bg-green-400/10",
-        border: "border-green-400/20",
+        color: "text-green-500",
+        bg: "bg-green-500/10",
+        border: "border-green-500/20",
         icon: CheckCircle2,
       };
 
     case "Cancelled":
       return {
-        color: "text-red-400",
-        bg: "bg-red-400/10",
-        border: "border-red-400/20",
+        color: "text-red-500",
+        bg: "bg-red-500/10",
+        border: "border-red-500/20",
         icon: XCircle,
       };
 
     case "Processing":
       return {
-        color: "text-blue-400",
-        bg: "bg-blue-400/10",
-        border: "border-blue-400/20",
+        color: "text-blue-500",
+        bg: "bg-blue-500/10",
+        border: "border-blue-500/20",
         icon: Package,
       };
 
     default:
       return {
-        color: "text-yellow-400",
-        bg: "bg-yellow-400/10",
-        border: "border-yellow-400/20",
+        color: "text-amber-500",
+        bg: "bg-amber-500/10",
+        border: "border-amber-500/20",
         icon: Clock,
       };
   }
@@ -92,12 +93,24 @@ function getOrdersFromStorage() {
 }
 
 function MyOrders() {
+  const { isDark } = useTheme();
+
   const [orders, setOrders] = useState(getOrdersFromStorage);
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedOrders, setExpandedOrders] = useState([]);
-
   const [confirmAction, setConfirmAction] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  const cardClass = isDark
+    ? "border-white/10 bg-[#141A15]"
+    : "border-gray-200 bg-white shadow-sm";
+
+  const textClass = isDark ? "text-white" : "text-gray-900";
+  const mutedClass = isDark ? "text-[#A3ADA4]" : "text-gray-500";
+
+  const inputClass = isDark
+    ? "border-white/10 bg-[#141A15] text-white placeholder:text-gray-500"
+    : "border-gray-200 bg-white text-gray-900 placeholder:text-gray-400";
 
   const saveOrders = (updatedOrders) => {
     try {
@@ -238,31 +251,43 @@ function MyOrders() {
   if (orders.length === 0) {
     return (
       <section className="container-custom flex min-h-[70vh] flex-col items-center justify-center py-12 text-center">
-        <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-[#211B3B] px-6 py-12 shadow-2xl shadow-purple-950/20">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-purple-600/10 blur-3xl" />
+        <div
+          className={`relative w-full max-w-md overflow-hidden rounded-3xl border px-6 py-12 shadow-xl ${
+            isDark ? "border-white/10 bg-[#141A15]" : "border-gray-200 bg-white"
+          }`}
+        >
+          <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-green-500/10 blur-3xl" />
 
           <div className="relative">
-            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-3xl border border-purple-400/20 bg-[#2B2149]">
-              <Package size={42} className="text-[#B99AFF]" />
+            <div
+              className={`mx-auto flex h-24 w-24 items-center justify-center rounded-3xl border ${
+                isDark
+                  ? "border-green-500/20 bg-green-500/10"
+                  : "border-green-200 bg-green-50"
+              }`}
+            >
+              <Package size={42} className="text-green-500" />
             </div>
 
-            <span className="mt-6 inline-flex items-center gap-1.5 rounded-full border border-purple-400/20 bg-purple-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-purple-300">
+            <span className="mt-6 inline-flex items-center gap-1.5 rounded-full border border-green-500/20 bg-green-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-green-500">
               <Sparkles size={12} />
               AI-SaleBD
             </span>
 
-            <h1 className="mt-5 text-2xl font-extrabold text-white sm:text-3xl">
+            <h1
+              className={`mt-5 text-2xl font-extrabold sm:text-3xl ${textClass}`}
+            >
               No Orders Yet
             </h1>
 
-            <p className="mt-3 text-sm leading-7 text-[#AAA3C1]">
+            <p className={`mt-3 text-sm leading-7 ${mutedClass}`}>
               You haven't placed any orders yet. Explore our digital products
               and place your first order.
             </p>
 
             <Link
               to="/shop"
-              className="mt-7 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] px-6 py-3.5 font-bold text-white shadow-lg shadow-purple-900/20 transition hover:-translate-y-0.5"
+              className="mt-7 inline-flex items-center gap-2 rounded-xl bg-green-600 px-6 py-3.5 font-bold text-white shadow-lg shadow-green-900/20 transition hover:-translate-y-0.5 hover:bg-green-700"
             >
               <ShoppingBag size={18} />
               Explore Products
@@ -279,13 +304,15 @@ function MyOrders() {
       {/* Confirmation Modal */}
       {confirmAction && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#211B3B] p-5 shadow-2xl sm:p-6">
+          <div
+            className={`w-full max-w-md rounded-2xl border p-5 shadow-2xl sm:p-6 ${cardClass}`}
+          >
             <div className="flex items-start justify-between">
               <div
                 className={`flex h-12 w-12 items-center justify-center rounded-xl ${
                   confirmAction.type === "cancel"
-                    ? "bg-red-500/10 text-red-400"
-                    : "bg-orange-500/10 text-orange-400"
+                    ? "bg-red-500/10 text-red-500"
+                    : "bg-orange-500/10 text-orange-500"
                 }`}
               >
                 {confirmAction.type === "cancel" ? (
@@ -299,26 +326,26 @@ function MyOrders() {
                 type="button"
                 onClick={() => setConfirmAction(null)}
                 disabled={isUpdating}
-                className="rounded-lg p-2 text-[#AAA3C1] transition hover:bg-white/10 hover:text-white disabled:opacity-50"
+                className={`rounded-lg p-2 transition hover:bg-gray-500/10 disabled:opacity-50 ${mutedClass}`}
                 aria-label="Close confirmation"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <h2 className="mt-5 text-xl font-bold text-white">
+            <h2 className={`mt-5 text-xl font-bold ${textClass}`}>
               {confirmAction.type === "cancel"
                 ? "Cancel This Order?"
                 : "Delete This Order?"}
             </h2>
 
-            <p className="mt-2 text-sm leading-6 text-[#AAA3C1]">
+            <p className={`mt-2 text-sm leading-6 ${mutedClass}`}>
               {confirmAction.type === "cancel"
                 ? "Are you sure you want to cancel this order? This action will change the order status to Cancelled."
                 : "Are you sure you want to permanently delete this cancelled order from your order history? This cannot be undone."}
             </p>
 
-            <p className="mt-3 break-all rounded-lg border border-white/5 bg-black/20 p-3 text-xs font-semibold text-[#B99AFF]">
+            <p className="mt-3 break-all rounded-lg border border-green-500/10 bg-green-500/5 p-3 text-xs font-semibold text-green-500">
               Order ID: {confirmAction.orderId}
             </p>
 
@@ -327,7 +354,11 @@ function MyOrders() {
                 type="button"
                 onClick={() => setConfirmAction(null)}
                 disabled={isUpdating}
-                className="flex-1 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/5 disabled:opacity-50"
+                className={`flex-1 rounded-xl border px-4 py-3 text-sm font-semibold transition hover:bg-gray-500/5 disabled:opacity-50 ${
+                  isDark
+                    ? "border-white/10 text-white"
+                    : "border-gray-200 text-gray-700"
+                }`}
               >
                 Go Back
               </button>
@@ -338,8 +369,8 @@ function MyOrders() {
                 disabled={isUpdating}
                 className={`flex-1 rounded-xl px-4 py-3 text-sm font-bold text-white transition disabled:opacity-50 ${
                   confirmAction.type === "cancel"
-                    ? "bg-red-500 hover:bg-red-600"
-                    : "bg-orange-500 hover:bg-orange-600"
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-orange-600 hover:bg-orange-700"
                 }`}
               >
                 {isUpdating
@@ -355,67 +386,73 @@ function MyOrders() {
 
       {/* Header */}
       <div className="mb-7">
-        <div className="flex items-center gap-2 text-sm text-[#AAA3C1]">
-          <Link to="/" className="transition hover:text-white">
+        <div className={`flex items-center gap-2 text-sm ${mutedClass}`}>
+          <Link to="/" className="transition hover:text-green-500">
             Home
           </Link>
           <span>/</span>
-          <span className="text-[#B99AFF]">My Orders</span>
+          <span className="font-medium text-green-500">My Orders</span>
         </div>
 
         <div className="mt-5 flex items-center gap-2">
-          <span className="rounded-lg border border-purple-400/20 bg-purple-500/10 p-2 text-[#B99AFF]">
+          <span className="rounded-lg border border-green-500/20 bg-green-500/10 p-2 text-green-500">
             <Package size={20} />
           </span>
 
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#B99AFF]">
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-green-500">
             Order Management
           </span>
         </div>
 
-        <h1 className="mt-3 text-2xl font-extrabold text-white sm:text-3xl">
+        <h1 className={`mt-3 text-2xl font-extrabold sm:text-3xl ${textClass}`}>
           My Orders
         </h1>
 
-        <p className="mt-2 text-sm text-[#AAA3C1]">
+        <p className={`mt-2 text-sm ${mutedClass}`}>
           View your order history and manage your orders.
         </p>
       </div>
 
       {/* Summary */}
       <div className="mb-7 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-white/10 bg-[#211B3B] p-4 transition hover:border-purple-400/30">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400">
+        <div
+          className={`rounded-2xl border p-4 transition hover:border-green-500/30 ${cardClass}`}
+        >
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-green-500/10 text-green-500">
             <Package size={19} />
           </div>
 
-          <p className="text-xs text-[#AAA3C1]">Total Orders</p>
+          <p className={`text-xs ${mutedClass}`}>Total Orders</p>
 
-          <p className="mt-1 text-2xl font-extrabold text-white">
+          <p className={`mt-1 text-2xl font-extrabold ${textClass}`}>
             {orders.length}
           </p>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-[#211B3B] p-4 transition hover:border-blue-400/30">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
+        <div
+          className={`rounded-2xl border p-4 transition hover:border-green-500/30 ${cardClass}`}
+        >
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-green-500/10 text-green-500">
             <ShoppingBag size={19} />
           </div>
 
-          <p className="text-xs text-[#AAA3C1]">Total Order Value</p>
+          <p className={`text-xs ${mutedClass}`}>Total Order Value</p>
 
-          <p className="mt-1 text-xl font-extrabold text-white sm:text-2xl">
+          <p className={`mt-1 text-xl font-extrabold sm:text-2xl ${textClass}`}>
             {formatPrice(totalSpent)}
           </p>
         </div>
 
-        <div className="col-span-2 rounded-2xl border border-white/10 bg-[#211B3B] p-4 transition hover:border-green-400/30 sm:col-span-1">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-green-500/10 text-green-400">
+        <div
+          className={`col-span-2 rounded-2xl border p-4 transition hover:border-green-500/30 sm:col-span-1 ${cardClass}`}
+        >
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-green-500/10 text-green-500">
             <CheckCircle2 size={19} />
           </div>
 
-          <p className="text-xs text-[#AAA3C1]">Completed Orders</p>
+          <p className={`text-xs ${mutedClass}`}>Completed Orders</p>
 
-          <p className="mt-1 text-2xl font-extrabold text-white">
+          <p className={`mt-1 text-2xl font-extrabold ${textClass}`}>
             {completedOrders}
           </p>
         </div>
@@ -426,7 +463,7 @@ function MyOrders() {
         <div className="relative">
           <Search
             size={19}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-[#AAA3C1]"
+            className={`absolute left-4 top-1/2 -translate-y-1/2 ${mutedClass}`}
           />
 
           <input
@@ -434,14 +471,14 @@ function MyOrders() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search by order ID, product or status..."
-            className="w-full rounded-xl border border-white/10 bg-[#211B3B] py-3.5 pl-12 pr-12 text-sm text-white outline-none transition placeholder:text-[#77718D] focus:border-[#8B5CF6]"
+            className={`w-full rounded-xl border py-3.5 pl-12 pr-12 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/10 ${inputClass}`}
           />
 
           {searchTerm && (
             <button
               type="button"
               onClick={() => setSearchTerm("")}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-[#AAA3C1] transition hover:text-white"
+              className={`absolute right-4 top-1/2 -translate-y-1/2 transition hover:text-green-500 ${mutedClass}`}
               aria-label="Clear search"
             >
               <RefreshCw size={16} />
@@ -449,19 +486,21 @@ function MyOrders() {
           )}
         </div>
 
-        <p className="mt-2 text-xs text-[#77718D]">
+        <p className={`mt-2 text-xs ${mutedClass}`}>
           Showing {filteredOrders.length} of {orders.length} orders
         </p>
       </div>
 
       {/* Orders */}
       {filteredOrders.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-[#211B3B] px-5 py-12 text-center">
-          <Search size={35} className="mx-auto mb-3 text-[#8B5CF6]" />
+        <div
+          className={`rounded-2xl border px-5 py-12 text-center ${cardClass}`}
+        >
+          <Search size={35} className="mx-auto mb-3 text-green-500" />
 
-          <h2 className="font-bold text-white">No matching orders</h2>
+          <h2 className={`font-bold ${textClass}`}>No matching orders</h2>
 
-          <p className="mt-2 text-sm text-[#AAA3C1]">
+          <p className={`mt-2 text-sm ${mutedClass}`}>
             Try searching with another keyword.
           </p>
         </div>
@@ -478,19 +517,21 @@ function MyOrders() {
             return (
               <article
                 key={order.orderId || index}
-                className="overflow-hidden rounded-2xl border border-white/10 bg-[#211B3B] transition duration-300 hover:border-purple-400/20"
+                className={`overflow-hidden rounded-2xl border transition duration-300 hover:border-green-500/20 ${cardClass}`}
               >
                 <div className="p-4 sm:p-5">
                   {/* Order Header */}
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-xs text-[#AAA3C1]">Order ID</p>
+                      <p className={`text-xs ${mutedClass}`}>Order ID</p>
 
-                      <p className="mt-1 break-all text-sm font-bold text-[#B99AFF] sm:text-base">
+                      <p className="mt-1 break-all text-sm font-bold text-green-500 sm:text-base">
                         {order.orderId || "Not available"}
                       </p>
 
-                      <p className="mt-2 flex items-center gap-1.5 text-xs text-[#AAA3C1]">
+                      <p
+                        className={`mt-2 flex items-center gap-1.5 text-xs ${mutedClass}`}
+                      >
                         <CalendarDays size={14} />
                         {formatDate(order.createdAt)}
                       </p>
@@ -504,7 +545,11 @@ function MyOrders() {
                     </div>
                   </div>
 
-                  <div className="my-4 border-t border-white/10" />
+                  <div
+                    className={`my-4 border-t ${
+                      isDark ? "border-white/10" : "border-gray-100"
+                    }`}
+                  />
 
                   {/* Products */}
                   <div className="space-y-3">
@@ -518,26 +563,30 @@ function MyOrders() {
                             src={item.image}
                             alt={item.name || "Product"}
                             loading="lazy"
-                            className="h-12 w-12 rounded-xl border border-white/10 object-cover"
+                            className="h-12 w-12 rounded-xl border border-gray-500/20 object-cover"
                           />
                         ) : (
-                          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/5">
-                            <Package size={20} className="text-[#AAA3C1]" />
+                          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-500/10">
+                            <Package size={20} className={mutedClass} />
                           </div>
                         )}
 
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-white">
+                          <p
+                            className={`truncate text-sm font-semibold ${textClass}`}
+                          >
                             {item.name || "Digital Product"}
                           </p>
 
-                          <p className="mt-1 text-xs text-[#AAA3C1]">
+                          <p className={`mt-1 text-xs ${mutedClass}`}>
                             {item.variantName || "Default"} ×{" "}
                             {item.quantity || 1}
                           </p>
                         </div>
 
-                        <p className="shrink-0 text-sm font-semibold text-white">
+                        <p
+                          className={`shrink-0 text-sm font-semibold ${textClass}`}
+                        >
                           {formatPrice(
                             Number(item.price || 0) *
                               Number(item.quantity || 1),
@@ -547,35 +596,41 @@ function MyOrders() {
                     ))}
                   </div>
 
-                  <div className="my-4 border-t border-white/10" />
+                  <div
+                    className={`my-4 border-t ${
+                      isDark ? "border-white/10" : "border-gray-100"
+                    }`}
+                  />
 
                   {/* Payment and Total */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="flex items-center gap-1.5 text-xs text-[#AAA3C1]">
+                      <p
+                        className={`flex items-center gap-1.5 text-xs ${mutedClass}`}
+                      >
                         <CreditCard size={13} />
                         Payment Method
                       </p>
 
-                      <p className="mt-1 text-sm font-semibold text-white">
+                      <p className={`mt-1 text-sm font-semibold ${textClass}`}>
                         {order.paymentMethod || "Not available"}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-xs text-[#AAA3C1]">Payment Status</p>
+                      <p className={`text-xs ${mutedClass}`}>Payment Status</p>
 
-                      <p className="mt-1 text-sm font-semibold text-yellow-400">
+                      <p className="mt-1 text-sm font-semibold text-amber-500">
                         {order.paymentStatus || "Pending"}
                       </p>
                     </div>
 
-                    <div className="col-span-2 flex items-center justify-between gap-3 rounded-xl border border-purple-400/10 bg-black/20 p-3">
-                      <span className="text-sm text-[#AAA3C1]">
+                    <div className="col-span-2 flex items-center justify-between gap-3 rounded-xl border border-green-500/10 bg-green-500/5 p-3">
+                      <span className={`text-sm ${mutedClass}`}>
                         Total Amount
                       </span>
 
-                      <span className="text-lg font-extrabold text-[#B99AFF]">
+                      <span className="text-lg font-extrabold text-green-500">
                         {formatPrice(order.total)}
                       </span>
                     </div>
@@ -593,7 +648,7 @@ function MyOrders() {
                               orderId: order.orderId,
                             })
                           }
-                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-400 transition hover:bg-red-500/20"
+                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-500 transition hover:bg-red-500/20"
                         >
                           <Ban size={16} />
                           Cancel Order
@@ -609,7 +664,7 @@ function MyOrders() {
                               orderId: order.orderId,
                             })
                           }
-                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-orange-500/30 bg-orange-500/10 px-4 py-3 text-sm font-semibold text-orange-400 transition hover:bg-orange-500/20"
+                          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-500 transition hover:bg-red-500/20"
                         >
                           <Trash2 size={16} />
                           Delete Order
@@ -622,7 +677,7 @@ function MyOrders() {
                   <button
                     type="button"
                     onClick={() => toggleOrder(order.orderId)}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[#8B5CF6]/30 py-3 text-sm font-semibold text-[#B99AFF] transition hover:border-[#8B5CF6]/60 hover:bg-[#8B5CF6]/10"
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-green-500/20 py-3 text-sm font-semibold text-green-500 transition hover:border-green-500/40 hover:bg-green-500/5"
                   >
                     {isExpanded ? (
                       <>
@@ -637,62 +692,70 @@ function MyOrders() {
 
                   {/* Expanded Details */}
                   {isExpanded && (
-                    <div className="mt-4 space-y-3 rounded-xl border border-white/10 bg-black/20 p-4">
-                      <h3 className="text-sm font-bold text-white">
+                    <div
+                      className={`mt-4 space-y-3 rounded-xl border p-4 ${
+                        isDark
+                          ? "border-white/10 bg-black/20"
+                          : "border-gray-200 bg-gray-50"
+                      }`}
+                    >
+                      <h3 className={`text-sm font-bold ${textClass}`}>
                         Additional Information
                       </h3>
 
                       <div className="flex items-start justify-between gap-3 text-sm">
-                        <span className="text-[#AAA3C1]">Customer Name</span>
-                        <span className="text-right text-white">
+                        <span className={mutedClass}>Customer Name</span>
+                        <span className={`text-right ${textClass}`}>
                           {order.customerName || "Not available"}
                         </span>
                       </div>
 
                       <div className="flex items-start justify-between gap-3 text-sm">
-                        <span className="text-[#AAA3C1]">Phone Number</span>
-                        <span className="text-right text-white">
+                        <span className={mutedClass}>Phone Number</span>
+                        <span className={`text-right ${textClass}`}>
                           {order.phone || "Not available"}
                         </span>
                       </div>
 
                       <div className="flex items-start justify-between gap-3 text-sm">
-                        <span className="text-[#AAA3C1]">Email Address</span>
-                        <span className="break-all text-right text-white">
+                        <span className={mutedClass}>Email Address</span>
+                        <span className={`break-all text-right ${textClass}`}>
                           {order.email || "Not provided"}
                         </span>
                       </div>
 
                       <div className="flex items-start justify-between gap-3 text-sm">
-                        <span className="text-[#AAA3C1]">Transaction ID</span>
-                        <span className="break-all text-right text-white">
+                        <span className={mutedClass}>Transaction ID</span>
+                        <span className={`break-all text-right ${textClass}`}>
                           {order.transactionId || "Not available"}
                         </span>
                       </div>
 
                       <div className="flex items-start justify-between gap-3 text-sm">
-                        <span className="text-[#AAA3C1]">Delivery Method</span>
-                        <span className="text-right text-white">
+                        <span className={mutedClass}>Delivery Method</span>
+                        <span className={`text-right ${textClass}`}>
                           {order.deliveryMethod || "Not selected"}
                         </span>
                       </div>
 
                       {order.cancelledAt && (
                         <div className="flex items-start justify-between gap-3 text-sm">
-                          <span className="text-[#AAA3C1]">Cancelled At</span>
-                          <span className="text-right text-red-400">
+                          <span className={mutedClass}>Cancelled At</span>
+                          <span className="text-right text-red-500">
                             {formatDate(order.cancelledAt)}
                           </span>
                         </div>
                       )}
 
                       <div className="flex items-start justify-between gap-3 text-sm">
-                        <span className="flex items-center gap-1 text-[#AAA3C1]">
+                        <span
+                          className={`flex items-center gap-1 ${mutedClass}`}
+                        >
                           <Hash size={13} />
                           Order Reference
                         </span>
 
-                        <span className="break-all text-right text-white">
+                        <span className={`break-all text-right ${textClass}`}>
                           {order.orderId || "Not available"}
                         </span>
                       </div>
@@ -708,7 +771,7 @@ function MyOrders() {
       {/* Continue Shopping */}
       <Link
         to="/shop"
-        className="mt-7 inline-flex items-center gap-2 rounded-xl border border-[#8B5CF6]/50 px-5 py-3 text-sm font-bold text-[#B99AFF] transition hover:bg-[#8B5CF6]/10"
+        className="mt-7 inline-flex items-center gap-2 rounded-xl border border-green-500/30 px-5 py-3 text-sm font-bold text-green-500 transition hover:bg-green-500/10"
       >
         <ShoppingBag size={17} />
         Continue Shopping

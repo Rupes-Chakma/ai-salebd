@@ -25,12 +25,12 @@ const categoryIcons = {
 };
 
 const categoryColors = {
-  Gaming: "text-purple-400 bg-purple-500/10",
-  "AI Tools": "text-violet-400 bg-violet-500/10",
-  Subscriptions: "text-pink-400 bg-pink-500/10",
-  "Gift Cards": "text-orange-400 bg-orange-500/10",
-  Software: "text-cyan-400 bg-cyan-500/10",
-  Entertainment: "text-rose-400 bg-rose-500/10",
+  Gaming: "text-rose-400 bg-rose-500/10",
+  "AI Tools": "text-green-400 bg-green-500/10",
+  Subscriptions: "text-amber-400 bg-amber-500/10",
+  "Gift Cards": "text-pink-400 bg-pink-500/10",
+  Software: "text-sky-400 bg-sky-500/10",
+  Entertainment: "text-orange-400 bg-orange-500/10",
 };
 
 const normalize = (value) =>
@@ -97,8 +97,8 @@ function CategorySection() {
     heading: isDark ? "text-white" : "text-slate-900",
     muted: isDark ? "text-slate-400" : "text-slate-500",
     card: isDark
-      ? "border-white/10 bg-[#171F30] hover:border-violet-500/40"
-      : "border-slate-200 bg-white hover:border-violet-300",
+      ? "border-white/10 bg-[#141A15] hover:border-green-500/40 hover:bg-[#19221B]"
+      : "border-slate-200 bg-white hover:border-green-300 hover:bg-green-50/30",
     icon: isDark ? "bg-white/[0.05]" : "bg-slate-50",
   };
 
@@ -108,6 +108,13 @@ function CategorySection() {
         {/* Heading */}
         <div className="mb-4 flex items-center justify-between gap-3 sm:mb-6">
           <div>
+            <div className="mb-2 flex items-center gap-2">
+              <span className="h-1.5 w-5 rounded-full bg-[#E11D48]" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#E11D48]">
+                Explore Collections
+              </span>
+            </div>
+
             <h2
               className={`text-lg font-extrabold tracking-tight sm:text-2xl ${theme.heading}`}
             >
@@ -121,7 +128,7 @@ function CategorySection() {
 
           <Link
             to="/shop"
-            className="inline-flex min-h-10 shrink-0 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-violet-400 transition hover:text-violet-300 sm:text-sm"
+            className="inline-flex min-h-10 shrink-0 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-green-500 transition hover:text-green-400 sm:text-sm"
           >
             View All
             <ArrowRight size={15} />
@@ -133,9 +140,10 @@ function CategorySection() {
           <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 scrollbar-hide sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-5">
             {activeCategories.map((category) => {
               const Icon = categoryIcons[category.name] || Layers;
+
               const color =
                 categoryColors[category.name] ||
-                "text-violet-400 bg-violet-500/10";
+                "text-green-400 bg-green-500/10";
 
               const productCount = getProductCount(category, products);
 
@@ -143,7 +151,7 @@ function CategorySection() {
                 <Link
                   key={category.id}
                   to={`/category/${category.slug}`}
-                  className={`group flex min-w-[145px] snap-start items-center gap-3 rounded-xl border p-3 transition-colors duration-200 hover:border-violet-500/40 sm:min-w-0 sm:rounded-2xl sm:p-4 ${theme.card}`}
+                  className={`group flex min-w-[145px] snap-start items-center gap-3 rounded-xl border p-3 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg sm:min-w-0 sm:rounded-2xl sm:p-4 ${theme.card}`}
                 >
                   <div
                     className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${color}`}
@@ -169,7 +177,7 @@ function CategorySection() {
 
                   <ArrowRight
                     size={15}
-                    className="shrink-0 text-slate-500 transition-transform group-hover:translate-x-1 group-hover:text-violet-400"
+                    className="shrink-0 text-slate-500 transition-transform group-hover:translate-x-1 group-hover:text-[#E11D48]"
                   />
                 </Link>
               );
@@ -178,9 +186,11 @@ function CategorySection() {
         ) : (
           <div className={`rounded-xl border p-6 text-center ${theme.card}`}>
             <Layers size={25} className={`mx-auto ${theme.muted}`} />
+
             <p className={`mt-3 text-sm font-semibold ${theme.heading}`}>
               No Categories Available
             </p>
+
             <p className={`mt-1 text-xs ${theme.muted}`}>
               Categories will appear here when activated.
             </p>

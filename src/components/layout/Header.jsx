@@ -17,6 +17,7 @@ import {
   Monitor,
   Film,
   Layers,
+  ChevronRight,
 } from "lucide-react";
 
 import MobileMenu from "./MobileMenu";
@@ -81,6 +82,7 @@ const Header = () => {
       : [];
   }, [categories]);
 
+  // Product Search Suggestions
   const suggestions = useMemo(() => {
     const query = normalize(search);
 
@@ -141,10 +143,10 @@ const Header = () => {
       .slice(0, 5);
   }, [search, products]);
 
+  // Close Suggestions on Outside Click
   useEffect(() => {
     const handlePointerDown = (event) => {
       const insideDesktop = desktopSearchRef.current?.contains(event.target);
-
       const insideMobile = mobileSearchRef.current?.contains(event.target);
 
       if (!insideDesktop && !insideMobile) {
@@ -168,6 +170,7 @@ const Header = () => {
     };
   }, []);
 
+  // Auto Focus Mobile Search
   useEffect(() => {
     if (mobileSearchOpen) {
       requestAnimationFrame(() => {
@@ -206,18 +209,43 @@ const Header = () => {
     setShowSuggestions(false);
   };
 
+  // Navigation Link Style
+  const navLinkClass = ({ isActive }) =>
+    `group relative flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 py-3 text-[13px] font-semibold transition-all duration-200 ${
+      isActive
+        ? "bg-[#16A34A]/[0.12] text-[#4ADE80] shadow-sm shadow-[#16A34A]/[0.04]"
+        : "text-[#A3ADA4] hover:bg-white/[0.045] hover:text-white"
+    }`;
+
+  // Search Suggestions
   const SearchSuggestions = () => {
     if (!showSuggestions || !search.trim()) return null;
 
     return (
-      <div className="absolute left-0 right-0 top-full z-[100] mt-2 max-h-[min(65vh,420px)] overflow-x-hidden overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#19162B] shadow-2xl shadow-black/60">
+      <div
+        className="
+          absolute left-0 right-0 top-full z-[100]
+          mt-2 max-h-[min(65vh,440px)]
+          overflow-x-hidden overflow-y-auto overscroll-contain
+          rounded-2xl border border-white/[0.09]
+          bg-[#141A15] shadow-2xl shadow-black/60
+        "
+      >
         {suggestions.length > 0 ? (
           <>
-            <div className="flex items-center justify-between border-b border-white/10 px-3 py-3 sm:px-4">
-              <p className="text-[10px] font-bold tracking-[0.16em] text-[#AAA3C1]">
-                SUGGESTED PRODUCTS
-              </p>
-              <Sparkles size={15} className="shrink-0 text-[#A78BFA]" />
+            <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-3.5">
+              <div>
+                <p className="text-[10px] font-bold tracking-[0.15em] text-[#899389]">
+                  SEARCH RESULTS
+                </p>
+                <p className="mt-1 text-xs text-[#A3ADA4]">
+                  Suggested products for you
+                </p>
+              </div>
+
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#16A34A]/[0.12] text-[#4ADE80]">
+                <Sparkles size={16} />
+              </span>
             </div>
 
             {suggestions.map((product) => (
@@ -225,105 +253,131 @@ const Header = () => {
                 key={product.id}
                 type="button"
                 onClick={() => selectProduct(product.id)}
-                className="flex min-h-[64px] w-full min-w-0 items-center gap-2 border-b border-white/5 px-3 py-2.5 text-left transition-colors hover:bg-[#28213F] active:bg-[#30264F] sm:gap-3 sm:px-4 sm:py-3"
+                className="
+                  flex min-h-[68px] w-full min-w-0
+                  items-center gap-3 border-b border-white/[0.05]
+                  px-3.5 py-3 text-left transition-all duration-200
+                  hover:bg-[#16A34A]/[0.055]
+                  active:bg-[#16A34A]/[0.10]
+                  sm:px-4
+                "
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-[#30264F] sm:h-11 sm:w-11">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/[0.08] bg-[#1A211B]">
                   {product.image ? (
                     <img
                       src={product.image}
                       alt={product.name || "Product"}
                       className="h-full w-full object-contain"
+                      loading="lazy"
                     />
                   ) : (
-                    <Package size={20} className="text-[#B99AFF]" />
+                    <Package size={20} className="text-[#4ADE80]" />
                   )}
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-semibold text-white sm:text-sm">
+                  <p className="truncate text-[13px] font-semibold text-white">
                     {product.name}
                   </p>
-                  <p className="mt-1 truncate text-[10px] text-[#AAA3C1] sm:text-xs">
+
+                  <p className="mt-1 truncate text-[11px] text-[#899389]">
                     {getCategoryName(product.category)}
                   </p>
                 </div>
 
-                <span className="max-w-[76px] shrink-0 truncate text-xs font-bold text-[#C4B5FD] sm:max-w-none sm:text-sm">
+                <span className="shrink-0 whitespace-nowrap text-xs font-bold text-[#4ADE80] sm:text-sm">
                   ৳{Number(product.price || 0).toLocaleString("en-BD")}
                 </span>
+
+                <ChevronRight size={15} className="shrink-0 text-[#657067]" />
               </button>
             ))}
 
             <button
               type="button"
               onClick={handleSearch}
-              className="flex min-h-12 w-full items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-[#A78BFA] transition hover:bg-[#28213F] active:bg-[#30264F]"
+              className="
+                flex min-h-12 w-full items-center justify-center gap-2
+                px-4 py-3 text-xs font-bold text-[#4ADE80]
+                transition hover:bg-[#16A34A]/[0.07]
+                active:bg-[#16A34A]/[0.12]
+              "
             >
-              View all results
-              <ArrowRight size={16} />
+              View all search results
+              <ArrowRight size={15} />
             </button>
           </>
         ) : (
-          <div className="px-4 py-7 text-center">
-            <Package size={27} className="mx-auto mb-2 text-[#AAA3C1]" />
-            <p className="text-sm font-medium text-white">No products found</p>
-            <p className="mt-1 text-xs text-[#AAA3C1]">Try another keyword</p>
+          <div className="px-4 py-8 text-center">
+            <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-white/[0.045] text-[#899389]">
+              <Package size={22} />
+            </span>
+
+            <p className="text-sm font-semibold text-white">
+              No products found
+            </p>
+
+            <p className="mt-1 text-xs text-[#899389]">Try another keyword</p>
           </div>
         )}
       </div>
     );
   };
 
-  const navLinkClass = ({ isActive }) =>
-    `flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-3 text-sm font-medium transition-colors ${
-      isActive
-        ? "bg-[#8B5CF6]/15 text-[#B99AFF]"
-        : "text-[#AAA3C1] hover:bg-white/5 hover:text-white"
-    }`;
-
   return (
-    <header className="sticky top-0 z-50 w-full min-w-0 overflow-x-clip bg-[#100E1B]">
+    <header className="sticky top-0 z-50 w-full min-w-0 overflow-x-clip border-b border-white/[0.06] bg-[#0B0F0C]/[0.97] shadow-lg shadow-black/10 backdrop-blur-xl">
       {/* Announcement Bar */}
-      <div className="overflow-hidden bg-gradient-to-r from-[#5420B8] via-[#6D28D9] to-[#2563EB] px-2 py-2 text-center text-[10px] font-semibold text-white sm:px-3 sm:text-sm">
-        <div className="flex items-center justify-center gap-1.5">
-          <Sparkles size={13} className="shrink-0 sm:h-4 sm:w-4" />
+      <div className="border-b border-white/[0.045] bg-[#101511] px-2 py-2">
+        <div className="flex items-center justify-center gap-2 text-[10px] font-semibold text-[#D5DDD5] sm:text-xs">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[#16A34A]/[0.12] text-[#4ADE80]">
+            <Sparkles size={12} />
+          </span>
 
           <span className="min-w-0 truncate">
             <span className="sm:hidden">
-              Welcome to AI-SaleBD — Premium AI Tools
+              Welcome to AI-SaleBD — Premium Digital Store
             </span>
 
             <span className="hidden sm:inline">
-              Welcome to AI-SaleBD — Your Gateway to Premium AI Tools
+              Welcome to AI-SaleBD — Your Trusted Premium Digital Marketplace
             </span>
           </span>
+
+          <span className="hidden h-1.5 w-1.5 shrink-0 rounded-full bg-[#16A34A] sm:block" />
         </div>
       </div>
 
       {/* Main Header */}
-      <div className="border-b border-white/[0.08] bg-[#100E1B]">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-1.5 px-2.5 py-2.5 sm:gap-3 sm:px-6 sm:py-3 lg:px-8">
+      <div className="border-b border-white/[0.06] bg-[#0B0F0C]">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-2 px-3 py-3.5 sm:gap-4 sm:px-6 lg:px-8">
           {/* Brand */}
           <Link
             to="/"
             aria-label="AI-SaleBD Home"
-            className="group flex min-w-0 shrink items-center gap-1.5 sm:gap-2.5"
+            className="group flex min-w-0 shrink items-center gap-2.5"
           >
-            <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#2563EB] shadow-lg shadow-purple-500/20 transition duration-300 group-hover:scale-105 sm:h-11 sm:w-11">
-              <Sparkles
-                size={21}
-                strokeWidth={2.2}
-                className="relative z-10 text-white sm:h-6 sm:w-6"
-              />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#16A34A]/20 bg-[#141A15] transition-all duration-300 group-hover:border-[#16A34A]/50 group-hover:bg-[#16A34A]/[0.08] sm:h-12 sm:w-12">
+              <svg
+                viewBox="0 0 100 100"
+                className="h-8 w-8 sm:h-9 sm:w-9"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M8 86L45 15C47 10 53 10 55 15L92 86H70L50 47L30 86H8Z"
+                  fill="#16A34A"
+                />
+                <path d="M39 86L50 65L61 86H39Z" fill="#E11D48" />
+              </svg>
             </div>
 
-            <div className="min-w-0">
-              <h1 className="whitespace-nowrap text-[15px] font-black tracking-tight text-white min-[360px]:text-[17px] sm:text-2xl">
-                AI-SaleBD<span className="text-[#A78BFA]">.</span>
+            <div className="min-w-0 leading-tight">
+              <h1 className="whitespace-nowrap text-[16px] font-black tracking-tight text-white min-[360px]:text-[18px] sm:text-[23px]">
+                AI-Sale<span className="text-[#16A34A]">BD.</span>
               </h1>
 
-              <p className="-mt-0.5 hidden whitespace-nowrap text-[9px] font-semibold tracking-[0.16em] text-[#AAA3C1] min-[390px]:block">
-                PREMIUM AI TOOLS MARKETPLACE
+              <p className="mt-1 hidden whitespace-nowrap text-[8px] font-semibold tracking-[0.15em] text-[#899389] min-[390px]:block sm:text-[9px]">
+                PREMIUM DIGITAL MARKETPLACE
               </p>
             </div>
           </Link>
@@ -331,11 +385,11 @@ const Header = () => {
           {/* Desktop Search */}
           <div
             ref={desktopSearchRef}
-            className="relative mx-3 hidden min-w-0 max-w-xl flex-1 md:block lg:mx-5"
+            className="relative mx-3 hidden min-w-0 max-w-[560px] flex-1 md:block lg:mx-6"
           >
             <form onSubmit={handleSearch}>
-              <div className="flex w-full items-center rounded-xl border border-white/10 bg-[#1B172D] px-4 transition-all duration-300 focus-within:border-[#8B5CF6]/70 focus-within:bg-[#211B3B] focus-within:shadow-lg focus-within:shadow-purple-500/10">
-                <Search size={19} className="shrink-0 text-[#AAA3C1]" />
+              <div className="flex min-h-[50px] w-full items-center gap-3 rounded-xl border border-white/[0.09] bg-[#141A15] px-3.5 transition-all duration-200 focus-within:border-[#16A34A]/60 focus-within:ring-2 focus-within:ring-[#16A34A]/[0.10]">
+                <Search size={19} className="shrink-0 text-[#899389]" />
 
                 <input
                   type="search"
@@ -346,7 +400,8 @@ const Header = () => {
                   }}
                   onFocus={() => setShowSuggestions(true)}
                   placeholder="Search AI tools and digital products..."
-                  className="w-full min-w-0 bg-transparent px-3 py-3.5 text-sm text-white outline-none placeholder:text-[#817A9A]"
+                  aria-label="Search products"
+                  className="min-w-0 flex-1 bg-transparent py-3 text-sm text-white outline-none placeholder:text-[#737D78]"
                 />
 
                 {search && (
@@ -354,16 +409,17 @@ const Header = () => {
                     type="button"
                     onClick={clearSearch}
                     aria-label="Clear search"
-                    className="mr-2 shrink-0 text-[#AAA3C1] hover:text-white"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#899389] transition hover:bg-white/[0.05] hover:text-white"
                   >
-                    <X size={17} />
+                    <X size={16} />
                   </button>
                 )}
 
                 <button
                   type="submit"
-                  className="shrink-0 rounded-lg bg-gradient-to-r from-[#7C3AED] to-[#6366F1] px-5 py-2.5 text-sm font-bold text-white shadow-lg transition duration-200 hover:brightness-110 active:scale-95"
+                  className="flex shrink-0 items-center gap-2 rounded-lg bg-[#16A34A] px-4 py-2.5 text-xs font-bold text-white transition-all duration-200 hover:bg-[#15803D] active:scale-95"
                 >
+                  <Search size={14} />
                   Search
                 </button>
               </div>
@@ -377,19 +433,19 @@ const Header = () => {
             <Link
               to="/account"
               aria-label="Account"
-              className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-[#DDD6FE] transition hover:border-[#8B5CF6]/50 hover:bg-white/[0.06] hover:text-white"
+              className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.09] bg-[#141A15] text-[#A3ADA4] transition-all duration-200 hover:border-[#16A34A]/40 hover:bg-[#16A34A]/[0.07] hover:text-[#4ADE80]"
             >
-              <UserRound size={20} />
+              <UserRound size={19} />
             </Link>
 
             <Link
               to="/cart"
-              className="relative flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#6366F1] px-4 py-3 text-sm font-bold text-white shadow-lg transition duration-200 hover:brightness-110 active:scale-95"
+              className="relative flex min-h-11 items-center gap-2.5 rounded-xl border border-[#16A34A]/30 bg-[#141A15] px-4 text-sm font-bold text-white transition-all duration-200 hover:border-[#16A34A]/60 hover:bg-[#16A34A]/[0.07] active:scale-[0.98]"
             >
-              <ShoppingCart size={19} />
+              <ShoppingCart size={19} className="text-[#4ADE80]" />
               Cart
               {cartCount > 0 && (
-                <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[#100E1B] bg-[#38BDF8] px-1 text-[10px] font-extrabold text-[#11101C]">
+                <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[#0B0F0C] bg-[#E11D48] px-1 text-[10px] font-extrabold text-white">
                   {cartCount > 99 ? "99+" : cartCount}
                 </span>
               )}
@@ -397,7 +453,7 @@ const Header = () => {
           </div>
 
           {/* Mobile Actions */}
-          <div className="flex shrink-0 items-center gap-1 md:hidden">
+          <div className="flex shrink-0 items-center gap-1.5 md:hidden">
             <button
               type="button"
               onClick={() => {
@@ -406,28 +462,26 @@ const Header = () => {
               }}
               aria-label={mobileSearchOpen ? "Close search" : "Open search"}
               aria-expanded={mobileSearchOpen}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-white transition hover:border-[#8B5CF6]/50 active:bg-white/10 min-[360px]:h-10 min-[360px]:w-10"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.09] bg-[#141A15] text-white transition-all duration-200 hover:border-[#16A34A]/40 hover:text-[#4ADE80] active:scale-95"
             >
-              {mobileSearchOpen ? <X size={20} /> : <Search size={20} />}
+              {mobileSearchOpen ? <X size={19} /> : <Search size={19} />}
             </button>
 
             <Link
               to="/cart"
               aria-label={`Shopping cart, ${cartCount} items`}
-              className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-white transition hover:border-[#8B5CF6]/50 active:bg-white/10 min-[360px]:h-10 min-[360px]:w-10"
+              className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.09] bg-[#141A15] text-white transition-all duration-200 hover:border-[#16A34A]/40 hover:text-[#4ADE80] active:scale-95"
             >
-              <ShoppingCart size={19} />
+              <ShoppingCart size={18} />
 
               {cartCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-[17px] min-w-[17px] items-center justify-center rounded-full border border-[#100E1B] bg-[#38BDF8] px-1 text-[9px] font-extrabold text-[#11101C]">
+                <span className="absolute -right-1 -top-1 flex h-[17px] min-w-[17px] items-center justify-center rounded-full border border-[#0B0F0C] bg-[#E11D48] px-1 text-[9px] font-extrabold text-white">
                   {cartCount > 99 ? "99+" : cartCount}
                 </span>
               )}
             </Link>
 
-            <div className="shrink-0">
-              <MobileMenu />
-            </div>
+            <MobileMenu />
           </div>
         </div>
 
@@ -435,12 +489,12 @@ const Header = () => {
         {mobileSearchOpen && (
           <div
             ref={mobileSearchRef}
-            className="relative border-t border-white/[0.08] bg-[#100E1B] px-2.5 py-3 sm:px-3 md:hidden"
+            className="relative border-t border-white/[0.07] bg-[#0E130F] px-3 py-3 sm:px-4 md:hidden"
           >
             <div className="relative min-w-0">
               <form onSubmit={handleSearch}>
-                <div className="flex min-h-11 min-w-0 items-center gap-1.5 rounded-xl border border-white/10 bg-[#1B172D] px-2.5 transition focus-within:border-[#8B5CF6]/70 focus-within:shadow-lg focus-within:shadow-purple-500/10 sm:min-h-12 sm:gap-2 sm:px-3">
-                  <Search size={18} className="shrink-0 text-[#AAA3C1]" />
+                <div className="flex min-h-12 min-w-0 items-center gap-2 rounded-xl border border-white/[0.09] bg-[#141A15] px-2.5 transition-all duration-200 focus-within:border-[#16A34A]/60 focus-within:ring-2 focus-within:ring-[#16A34A]/[0.10] sm:px-3">
+                  <Search size={18} className="shrink-0 text-[#899389]" />
 
                   <input
                     ref={mobileInputRef}
@@ -452,7 +506,8 @@ const Header = () => {
                     }}
                     onFocus={() => setShowSuggestions(true)}
                     placeholder="Search AI tools..."
-                    className="min-w-0 flex-1 bg-transparent py-3 text-xs text-white outline-none placeholder:text-[#817A9A] sm:text-sm"
+                    aria-label="Search products"
+                    className="min-w-0 flex-1 bg-transparent py-3 text-xs text-white outline-none placeholder:text-[#737D78] sm:text-sm"
                   />
 
                   {search && (
@@ -460,15 +515,15 @@ const Header = () => {
                       type="button"
                       onClick={clearSearch}
                       aria-label="Clear search"
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#AAA3C1] hover:bg-white/5 hover:text-white"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#899389] hover:bg-white/[0.05] hover:text-white"
                     >
-                      <X size={17} />
+                      <X size={16} />
                     </button>
                   )}
 
                   <button
                     type="submit"
-                    className="shrink-0 rounded-lg bg-gradient-to-r from-[#7C3AED] to-[#6366F1] px-2.5 py-2.5 text-[11px] font-bold text-white transition hover:brightness-110 active:scale-95 min-[360px]:px-3.5 min-[360px]:text-xs"
+                    className="shrink-0 rounded-lg bg-[#16A34A] px-3 py-2.5 text-[11px] font-bold text-white transition hover:bg-[#15803D] active:scale-95 min-[390px]:px-3.5"
                   >
                     Search
                   </button>
@@ -481,21 +536,21 @@ const Header = () => {
         )}
       </div>
 
-      {/* Desktop Menu Bar */}
+      {/* Desktop Navigation */}
       <nav
         aria-label="Main navigation"
-        className="hidden w-full border-b border-white/10 bg-[#11101C] md:block"
+        className="hidden w-full border-b border-white/[0.06] bg-[#0D120E] md:block"
       >
         <div className="mx-auto flex w-full max-w-7xl items-center gap-3 px-4 lg:px-8">
           <div className="min-w-0 flex-1 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="flex w-max items-center gap-1 py-2">
+            <div className="flex w-max items-center gap-1.5 py-2">
               <NavLink to="/" end className={navLinkClass}>
-                <Home size={17} />
+                <Home size={16} />
                 Home
               </NavLink>
 
               <NavLink to="/shop" className={navLinkClass}>
-                <Store size={17} />
+                <Store size={16} />
                 Shop
               </NavLink>
 
@@ -504,30 +559,22 @@ const Header = () => {
 
                 return (
                   <NavLink
-                    key={category.id}
+                    key={category.id || category.slug}
                     to={`/category/${category.slug}`}
                     className={navLinkClass}
                   >
-                    <Icon size={17} />
+                    <Icon size={16} />
                     {category.name}
                   </NavLink>
                 );
               })}
 
               <NavLink to="/my-orders" className={navLinkClass}>
-                <ClipboardList size={17} />
+                <ClipboardList size={16} />
                 My Orders
               </NavLink>
             </div>
           </div>
-
-          <NavLink
-            to="/deals"
-            className="flex shrink-0 items-center gap-2 rounded-lg bg-gradient-to-r from-[#6D28D9] to-[#2563EB] px-3 py-3 text-sm font-semibold text-white transition hover:brightness-110 lg:px-4"
-          >
-            <Sparkles size={17} />
-            <span>Special Deals</span>
-          </NavLink>
         </div>
       </nav>
     </header>

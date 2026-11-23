@@ -4,8 +4,6 @@ import {
   ChevronDown,
   HelpCircle,
   MessageCircle,
-  ShoppingBag,
-  CreditCard,
   Truck,
   ShieldCheck,
   ArrowRight,
@@ -61,7 +59,7 @@ const faqCategories = [
   },
   {
     title: "Payments",
-    icon: CreditCard,
+    icon: CreditCardIcon,
     questions: [
       {
         question: "Which payment methods are available?",
@@ -104,6 +102,26 @@ const faqCategories = [
   },
 ];
 
+function CreditCardIcon(props) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={props.size || 24}
+      height={props.size || 24}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={props.className}
+    >
+      <rect width="20" height="14" x="2" y="5" rx="2" />
+      <path d="M2 10h20" />
+    </svg>
+  );
+}
+
 function FAQ() {
   const [activeCategory, setActiveCategory] = useState(0);
   const [openQuestion, setOpenQuestion] = useState(0);
@@ -116,28 +134,26 @@ function FAQ() {
   };
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#080711] text-white">
+    <main className="min-h-screen overflow-hidden bg-[#0B0F0C] text-[#F5F7F5]">
       {/* HERO */}
-      <section className="relative px-4 pb-16 pt-20 sm:px-6 sm:pt-24 lg:px-8">
-        <div className="absolute left-1/2 top-0 -z-0 h-80 w-80 -translate-x-1/2 rounded-full bg-purple-600/20 blur-[120px]" />
+      <section className="relative px-4 pb-14 pt-16 sm:px-6 sm:pb-16 sm:pt-20 lg:px-8">
+        <div className="pointer-events-none absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full bg-green-500/[0.08] blur-[110px]" />
 
         <div className="relative mx-auto max-w-4xl text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-purple-500/30 bg-purple-500/10 text-purple-400">
-            <HelpCircle size={32} />
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-green-500/20 bg-green-500/10 text-green-400 sm:h-16 sm:w-16">
+            <HelpCircle size={30} />
           </div>
 
-          <p className="mt-6 text-sm font-bold uppercase tracking-[0.25em] text-purple-400">
+          <p className="mt-6 text-xs font-bold uppercase tracking-[0.22em] text-green-400 sm:text-sm">
             Help Center
           </p>
 
-          <h1 className="mt-4 text-4xl font-extrabold sm:text-5xl md:text-6xl">
+          <h1 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl">
             Frequently Asked
-            <span className="block bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-              Questions
-            </span>
+            <span className="block text-green-400">Questions</span>
           </h1>
 
-          <p className="mx-auto mt-6 max-w-2xl text-sm leading-8 text-gray-400 sm:text-base">
+          <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-[#A3ADA4] sm:text-base sm:leading-8">
             Find answers to common questions about AI-SaleBD, products, orders,
             payments, and digital delivery.
           </p>
@@ -145,13 +161,13 @@ function FAQ() {
       </section>
 
       {/* FAQ CONTENT */}
-      <section className="px-4 py-10 sm:px-6 lg:px-8">
+      <section className="px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
         <div className="mx-auto max-w-6xl">
-          <div className="grid gap-8 lg:grid-cols-12">
+          <div className="grid gap-7 lg:grid-cols-12 lg:gap-8">
             {/* CATEGORY SIDEBAR */}
             <aside className="lg:col-span-4">
-              <div className="rounded-2xl border border-white/10 bg-[#171426] p-4">
-                <h2 className="mb-4 px-3 text-sm font-bold text-gray-400">
+              <div className="rounded-2xl border border-white/[0.08] bg-[#141A15] p-4">
+                <h2 className="mb-4 px-3 text-xs font-bold tracking-wider text-[#A3ADA4]">
                   BROWSE BY CATEGORY
                 </h2>
 
@@ -163,24 +179,32 @@ function FAQ() {
                     return (
                       <button
                         key={category.title}
+                        type="button"
                         onClick={() => handleCategoryChange(index)}
-                        className={`flex w-full items-center justify-between rounded-xl px-4 py-4 text-left text-sm font-semibold transition ${
+                        aria-pressed={isActive}
+                        className={`flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3.5 text-left text-sm font-semibold transition duration-200 ${
                           isActive
-                            ? "bg-gradient-to-r from-purple-600/30 to-blue-600/20 text-white ring-1 ring-purple-500/30"
-                            : "text-gray-400 hover:bg-white/5 hover:text-white"
+                            ? "border border-green-500/20 bg-green-500/10 text-white"
+                            : "border border-transparent text-[#A3ADA4] hover:bg-white/[0.04] hover:text-white"
                         }`}
                       >
-                        <span className="flex items-center gap-3">
+                        <span className="flex min-w-0 items-center gap-3">
                           <Icon
                             size={19}
-                            className={
-                              isActive ? "text-purple-400" : "text-gray-500"
-                            }
+                            className={`shrink-0 ${
+                              isActive ? "text-green-400" : "text-[#7D887E]"
+                            }`}
                           />
-                          {category.title}
+                          <span>{category.title}</span>
                         </span>
 
-                        <span className="text-xs text-gray-500">
+                        <span
+                          className={`rounded-md px-2 py-1 text-xs ${
+                            isActive
+                              ? "bg-green-500/15 text-green-400"
+                              : "bg-white/[0.05] text-[#879188]"
+                          }`}
+                        >
                           {category.questions.length}
                         </span>
                       </button>
@@ -189,21 +213,22 @@ function FAQ() {
                 </div>
               </div>
 
-              <div className="mt-5 rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-600/15 to-blue-600/10 p-6">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/15 text-purple-400">
-                  <MessageCircle size={24} />
+              {/* SUPPORT CARD */}
+              <div className="mt-5 rounded-2xl border border-rose-500/15 bg-[#141A15] p-5 sm:p-6">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-500/10 text-rose-400">
+                  <MessageCircle size={23} />
                 </div>
 
                 <h3 className="mt-5 text-lg font-bold">Still need help?</h3>
 
-                <p className="mt-2 text-sm leading-7 text-gray-400">
+                <p className="mt-2 text-sm leading-7 text-[#A3ADA4]">
                   Can't find the answer you're looking for? Contact our support
                   team.
                 </p>
 
                 <Link
                   to="/contact"
-                  className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-purple-300 transition hover:text-white"
+                  className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-green-400 transition hover:text-green-300"
                 >
                   Contact Support
                   <ArrowRight size={16} />
@@ -214,7 +239,7 @@ function FAQ() {
             {/* QUESTIONS */}
             <div className="lg:col-span-8">
               <div className="mb-6">
-                <p className="text-xs font-bold uppercase tracking-widest text-purple-400">
+                <p className="text-xs font-bold uppercase tracking-widest text-green-400">
                   FAQ Category
                 </p>
 
@@ -222,7 +247,7 @@ function FAQ() {
                   {currentCategory.title}
                 </h2>
 
-                <p className="mt-2 text-sm text-gray-400">
+                <p className="mt-2 text-sm text-[#A3ADA4]">
                   {currentCategory.questions.length} questions and answers
                 </p>
               </div>
@@ -230,30 +255,33 @@ function FAQ() {
               <div className="space-y-3">
                 {currentCategory.questions.map((item, index) => {
                   const isOpen = openQuestion === index;
+                  const answerId = `faq-answer-${activeCategory}-${index}`;
 
                   return (
                     <div
                       key={item.question}
-                      className={`overflow-hidden rounded-2xl border transition ${
+                      className={`overflow-hidden rounded-2xl border transition duration-200 ${
                         isOpen
-                          ? "border-purple-500/40 bg-[#171426]"
-                          : "border-white/10 bg-[#11101C] hover:border-white/20"
+                          ? "border-green-500/30 bg-[#141A15]"
+                          : "border-white/[0.08] bg-[#111711] hover:border-white/15"
                       }`}
                     >
                       <button
+                        type="button"
                         onClick={() => setOpenQuestion(isOpen ? -1 : index)}
                         aria-expanded={isOpen}
-                        className="flex w-full items-center justify-between gap-4 p-5 text-left sm:p-6"
+                        aria-controls={answerId}
+                        className="flex w-full items-center justify-between gap-4 p-4 text-left sm:p-5"
                       >
-                        <span className="text-sm font-semibold leading-6 text-white sm:text-base">
+                        <span className="text-sm font-semibold leading-6 text-[#F5F7F5] sm:text-base">
                           {item.question}
                         </span>
 
                         <span
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition ${
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition duration-200 ${
                             isOpen
-                              ? "rotate-180 bg-purple-500/20 text-purple-300"
-                              : "bg-white/5 text-gray-400"
+                              ? "rotate-180 bg-green-500/10 text-green-400"
+                              : "bg-white/[0.05] text-[#A3ADA4]"
                           }`}
                         >
                           <ChevronDown size={19} />
@@ -261,9 +289,12 @@ function FAQ() {
                       </button>
 
                       {isOpen && (
-                        <div className="px-5 pb-6 sm:px-6">
-                          <div className="mb-4 h-px bg-white/10" />
-                          <p className="text-sm leading-8 text-gray-400">
+                        <div
+                          id={answerId}
+                          className="px-4 pb-5 sm:px-5 sm:pb-6"
+                        >
+                          <div className="mb-4 h-px bg-white/[0.08]" />
+                          <p className="text-sm leading-7 text-[#A3ADA4]">
                             {item.answer}
                           </p>
                         </div>
@@ -278,24 +309,24 @@ function FAQ() {
       </section>
 
       {/* BOTTOM CTA */}
-      <section className="px-4 pb-20 pt-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-5xl rounded-3xl border border-white/10 bg-gradient-to-r from-purple-600/15 to-blue-600/15 px-6 py-12 text-center sm:px-12">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-500/15 text-purple-400">
-            <MessageCircle size={27} />
+      <section className="px-4 pb-16 pt-12 sm:px-6 sm:pb-20 lg:px-8">
+        <div className="mx-auto max-w-5xl rounded-2xl border border-green-500/15 bg-[#141A15] px-6 py-10 text-center sm:rounded-3xl sm:px-12 sm:py-12">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-green-500/10 text-green-400">
+            <MessageCircle size={26} />
           </div>
 
           <h2 className="mt-5 text-2xl font-bold sm:text-3xl">
             Have More Questions?
           </h2>
 
-          <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-gray-400">
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[#A3ADA4]">
             Our support team is here to help you with your questions and product
             inquiries.
           </p>
 
           <Link
             to="/contact"
-            className="mt-7 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-7 py-3.5 text-sm font-bold text-white transition hover:scale-105"
+            className="mt-7 inline-flex items-center gap-2 rounded-xl bg-green-600 px-7 py-3.5 text-sm font-bold text-white transition hover:bg-green-500"
           >
             Contact Us
             <ArrowRight size={17} />

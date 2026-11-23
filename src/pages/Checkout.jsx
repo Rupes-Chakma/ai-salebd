@@ -19,22 +19,19 @@ import {
   MapPinned,
   MessageCircle,
   Trash2,
+  Copy,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
 import useCartStore from "../store/cartStore";
 import useProductStore from "../store/useProductStore";
+import paymentMethods from "../config/paymentMethods";
+import { useTheme } from "../context/ThemeContext";
 
 const WHATSAPP_NUMBER = "8801648582639";
 
 const ADDRESS_KEY = "nexora-addresses";
 const DEFAULT_ADDRESS_KEY = "nexora-default-address";
-
-const paymentMethods = [
-  { id: "bKash", name: "bKash", color: "border-pink-500" },
-  { id: "Nagad", name: "Nagad", color: "border-orange-500" },
-  { id: "Rocket", name: "Rocket", color: "border-purple-500" },
-];
 
 const emptyAddress = {
   fullName: "",
@@ -49,7 +46,6 @@ const formatPrice = (price) => `৳${Number(price || 0).toLocaleString("en-BD")}
 
 const safeQuantity = (value) => {
   const quantity = Math.floor(Number(value));
-
   return Number.isFinite(quantity) ? Math.max(1, Math.min(99, quantity)) : 1;
 };
 
@@ -57,7 +53,7 @@ const normalizePhone = (value) => {
   let phone = String(value || "").replace(/\D/g, "");
 
   if (phone.startsWith("880")) {
-    phone = phone.slice(2);
+    phone = `0${phone.slice(3)}`;
   }
 
   return phone;
@@ -76,13 +72,14 @@ const getSavedAddresses = () => {
 
 const getCategoryName = (category) => {
   if (!category) return "Digital Product";
-
   if (typeof category === "string") return category;
 
   return category.name || category.title || category.slug || "Digital Product";
 };
 
 function Checkout() {
+  const { isDark } = useTheme();
+
   const cartItems = useCartStore((state) => state.cartItems);
   const products = useProductStore((state) => state.products);
 
@@ -122,14 +119,38 @@ function Checkout() {
   });
 
   const [email, setEmail] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("bKash");
+  const [paymentMethod, setPaymentMethod] = useState("bkash");
+  const [senderNumber, setSenderNumber] = useState("");
+  const [transactionId, setTransactionId] = useState("");
   const [isOpeningWhatsApp, setIsOpeningWhatsApp] = useState(false);
 
   const selectedAddress = addresses.find(
     (item) => item.id === selectedAddressId,
   );
 
-  // Validate products, variants, prices and stock.
+  const selectedPaymentMethod = paymentMethods.find(
+    (method) => method.id === paymentMethod,
+  );
+
+  const surfaceClass = isDark
+    ? "border-white/10 bg-[#141A15]"
+    : "border-gray-200 bg-white";
+
+  const innerSurfaceClass = isDark
+    ? "border-white/10 bg-[#101510]"
+    : "border-gray-200 bg-gray-50";
+
+  const inputClass = isDark
+    ? "border-white/10 bg-[#101510] text-white placeholder:text-gray-500 focus:border-green-500"
+    : "border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:border-green-600";
+
+  const headingClass = isDark ? "text-white" : "text-gray-900";
+  const mutedClass = isDark ? "text-gray-400" : "text-gray-500";
+
+  const iconBoxClass = isDark
+    ? "bg-green-500/10 text-green-400"
+    : "bg-green-50 text-green-700";
+
   const validatedItems = useMemo(() => {
     return safeCartItems.map((item) => {
       const product = safeProducts.find(
@@ -240,20 +261,16 @@ function Checkout() {
 
   const subtotal = validatedItems.reduce((sum, item) => {
     if (item.issue) return sum;
-
     return sum + item.currentPrice * item.quantity;
   }, 0);
 
-  // Select a saved address.
   const handleSelectAddress = (item) => {
     setSelectedAddressId(item.id);
     setName(item.fullName);
     setPhone(normalizePhone(item.phone));
-
     toast.success("Delivery address selected!");
   };
 
-  // Address form input.
   const handleAddressChange = (e) => {
     const { name, value } = e.target;
 
@@ -263,7 +280,6 @@ function Checkout() {
     }));
   };
 
-  // Save a new address.
   const handleSaveAddress = () => {
     const cleanedPhone = normalizePhone(addressForm.phone);
 
@@ -320,7 +336,20 @@ function Checkout() {
     }
   };
 
-  // WhatsApp Checkout.
+  const handleCopyPaymentNumber = async () => {
+    if (!selectedPaymentMethod?.number) {
+      toast.error("Payment number is not available.");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(selectedPaymentMethod.number);
+      toast.success("Payment number copied!");
+    } catch {
+      toast.error("Could not copy number. Please copy it manually.");
+    }
+  };
+
   const handleWhatsAppCheckout = (e) => {
     e.preventDefault();
 
@@ -331,7 +360,6 @@ function Checkout() {
       return;
     }
 
-    // Recheck the latest product data before checkout.
     const currentProducts = useProductStore.getState().products || [];
 
     const latestIssues = safeCartItems.some((item) => {
@@ -359,7 +387,9 @@ function Checkout() {
 
       const price = Number(variant?.price ?? product.price);
 
-      if (!Number.isFinite(price) || price < 0) return true;
+      if (!Number.isFinite(price) || price < 0) {
+        return true;
+      }
 
       const stockValue = variant ? variant.stock : product.stock;
       const stock = Number(stockValue);
@@ -374,11 +404,7 @@ function Checkout() {
         return true;
       }
 
-      if (hasStockLimit && stock <= 0) {
-        return true;
-      }
-
-      return false;
+      return hasStockLimit && stock <= 0;
     });
 
     if (hasUnavailableItems || latestIssues) {
@@ -401,13 +427,34 @@ function Checkout() {
       return;
     }
 
+    if (!selectedPaymentMethod?.number) {
+      toast.error("Please select a valid payment method.");
+      return;
+    }
+
+    if (!isValidPhone(senderNumber)) {
+      toast.error("Enter a valid payment sender number.");
+      return;
+    }
+
+    if (!transactionId.trim()) {
+      toast.error("Please enter your payment Transaction ID.");
+      return;
+    }
+
+    const orderId = `ASBD-${Date.now()}`;
+
     const orderLines = validatedItems.map((item, index) => {
       const itemTotal = item.currentPrice * item.quantity;
 
       return [
-        `${index + 1}. ${item.currentProduct.name || item.name}`,
-        `   Category: ${getCategoryName(item.currentProduct.category || item.category)}`,
-        `   Package: ${item.currentVariant?.name || item.variantName || "Default"}`,
+        `${index + 1}. ${item.currentProduct?.name || item.name}`,
+        `   Category: ${getCategoryName(
+          item.currentProduct?.category || item.category,
+        )}`,
+        `   Package: ${
+          item.currentVariant?.name || item.variantName || "Default"
+        }`,
         `   Unit Price: ${formatPrice(item.currentPrice)}`,
         `   Quantity: ${item.quantity}`,
         `   Subtotal: ${formatPrice(itemTotal)}`,
@@ -428,6 +475,10 @@ function Checkout() {
     const message = [
       "Hello AI-SaleBD! I want to place an order.",
       "",
+      "----- ORDER INFORMATION -----",
+      `Order ID: ${orderId}`,
+      "Order Status: Pending Verification",
+      "",
       "----- CUSTOMER DETAILS -----",
       `Name: ${name.trim()}`,
       `Mobile: ${normalizePhone(phone)}`,
@@ -442,57 +493,61 @@ function Checkout() {
       "---------------------------",
       `Total Products: ${totalQuantity}`,
       `Grand Total: ${formatPrice(subtotal)}`,
-      `Payment Preference: ${paymentMethod}`,
       "",
-      "Please confirm product availability and payment instructions.",
+      "----- PAYMENT INFORMATION -----",
+      `Payment Method: ${selectedPaymentMethod.name}`,
+      `Payment Account: ${selectedPaymentMethod.number}`,
+      `Account Type: ${selectedPaymentMethod.type || "Personal"}`,
+      `Sender Number: ${normalizePhone(senderNumber)}`,
+      `Transaction ID: ${transactionId.trim()}`,
+      "Payment Status: Pending Manual Verification",
       "",
-      "Thank you!",
+      "Please verify the payment and confirm my order.",
+      "",
+      "Thank you for choosing AI-SaleBD!",
     ].join("\n");
 
-    const whatsappURL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+    const whatsappURL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+      message,
+    )}`;
 
     setIsOpeningWhatsApp(true);
 
-    const whatsappWindow = window.open(
-      whatsappURL,
-      "_blank",
-      "noopener,noreferrer",
-    );
+    const whatsappWindow = window.open(whatsappURL, "_blank");
 
     if (!whatsappWindow) {
       setIsOpeningWhatsApp(false);
-      toast.error(
-        "WhatsApp could not open. Please allow pop-ups and try again.",
-      );
+      toast.error("Please allow pop-ups and try again.");
       return;
     }
 
     toast.success("Order details are ready in WhatsApp.");
 
-    // Cart is intentionally not cleared here.
-    // The customer should confirm the order with the store first.
-    setTimeout(() => setIsOpeningWhatsApp(false), 1500);
+    setTimeout(() => {
+      setIsOpeningWhatsApp(false);
+    }, 1500);
   };
 
-  // Empty Cart.
   if (safeCartItems.length === 0) {
     return (
       <section className="container-custom flex min-h-[60vh] flex-col items-center justify-center px-3 py-12 text-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-3xl border border-white/10 bg-[#211B3B]">
-          <ShoppingBag size={38} className="text-[#8B5CF6]" />
+        <div
+          className={`flex h-20 w-20 items-center justify-center rounded-3xl border ${surfaceClass}`}
+        >
+          <ShoppingBag size={38} className="text-green-500" />
         </div>
 
-        <h2 className="mt-5 text-2xl font-bold text-white">
+        <h2 className={`mt-5 text-2xl font-bold ${headingClass}`}>
           Your Cart is Empty
         </h2>
 
-        <p className="mt-2 max-w-sm text-sm leading-6 text-[#AAA3C1]">
+        <p className={`mt-2 max-w-sm text-sm leading-6 ${mutedClass}`}>
           Add some products before proceeding to checkout.
         </p>
 
         <Link
           to="/shop"
-          className="mt-6 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#8B5CF6] px-6 py-3 text-sm font-bold text-white transition hover:opacity-90"
+          className="mt-6 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-green-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-green-700"
         >
           <ShoppingBag size={17} />
           Explore Products
@@ -503,42 +558,45 @@ function Checkout() {
 
   return (
     <section className="container-custom max-w-6xl px-3 py-6 pb-12 sm:px-0 sm:py-10">
-      {/* Back to Cart */}
       <Link
         to="/cart"
-        className="mb-5 inline-flex min-h-10 items-center gap-2 text-sm text-[#AAA3C1] transition hover:text-white"
+        className={`mb-5 inline-flex min-h-10 items-center gap-2 text-sm transition ${
+          isDark
+            ? "text-gray-400 hover:text-green-400"
+            : "text-gray-500 hover:text-green-700"
+        }`}
       >
         <ArrowLeft size={17} />
         Back to Cart
       </Link>
 
-      {/* Page Heading */}
       <div className="mb-6 sm:mb-8">
-        <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#B99AFF] sm:text-xs">
+        <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-green-500 sm:text-xs">
           <ShoppingBag size={15} />
           AI-SaleBD Checkout
         </div>
 
-        <h1 className="mt-3 text-2xl font-extrabold text-white sm:text-3xl">
+        <h1
+          className={`mt-3 text-2xl font-extrabold sm:text-3xl ${headingClass}`}
+        >
           Complete Your Order
         </h1>
 
-        <p className="mt-2 text-xs leading-6 text-[#AAA3C1] sm:text-sm">
-          Provide your details to send your order through WhatsApp.
+        <p className={`mt-2 text-xs leading-6 sm:text-sm ${mutedClass}`}>
+          Provide your details and payment information to place your order.
         </p>
       </div>
 
-      {/* Unavailable Products */}
       {hasUnavailableItems && (
         <div className="mb-5 flex items-start gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
           <AlertCircle size={20} className="mt-0.5 shrink-0 text-red-400" />
 
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-red-300">
+            <p className="text-sm font-semibold text-red-400">
               Some products need attention
             </p>
 
-            <p className="mt-1 text-xs leading-6 text-[#AAA3C1]">
+            <p className={`mt-1 text-xs leading-6 ${mutedClass}`}>
               {unavailableItems.length} item(s) are unavailable, have changed
               packages, or have insufficient stock. Please return to your cart
               and review these products.
@@ -546,7 +604,7 @@ function Checkout() {
 
             <Link
               to="/cart"
-              className="mt-2 inline-flex min-h-9 items-center text-xs font-bold text-red-300 underline"
+              className="mt-2 inline-flex min-h-9 items-center text-xs font-bold text-red-400 underline"
             >
               Return to Cart
             </Link>
@@ -560,17 +618,20 @@ function Checkout() {
       >
         <div className="min-w-0 space-y-4 sm:space-y-5">
           {/* Delivery Address */}
-          <div className="rounded-2xl border border-white/10 bg-[#211B3B] p-4 sm:p-6">
+          <div className={`rounded-2xl border p-4 sm:p-6 ${surfaceClass}`}>
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#8B5CF6]/15 text-[#B99AFF]">
+                <div
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconBoxClass}`}
+                >
                   <MapPin size={20} />
                 </div>
 
                 <div>
-                  <h2 className="font-bold text-white">Delivery Address</h2>
-
-                  <p className="text-xs text-[#AAA3C1]">
+                  <h2 className={`font-bold ${headingClass}`}>
+                    Delivery Address
+                  </h2>
+                  <p className={`text-xs ${mutedClass}`}>
                     Optional for digital products
                   </p>
                 </div>
@@ -579,14 +640,13 @@ function Checkout() {
               <button
                 type="button"
                 onClick={() => setShowAddressForm((prev) => !prev)}
-                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[#8B5CF6]/40 bg-[#8B5CF6]/10 px-4 py-2.5 text-xs font-semibold text-[#B99AFF] transition hover:bg-[#8B5CF6]/20"
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-2.5 text-xs font-semibold text-green-500 transition hover:bg-green-500/20"
               >
                 <Plus size={16} />
                 Add New Address
               </button>
             </div>
 
-            {/* Saved Addresses */}
             {addresses.length > 0 ? (
               <div className="mt-5 space-y-3">
                 {addresses.map((item) => {
@@ -605,43 +665,49 @@ function Checkout() {
                       onClick={() => handleSelectAddress(item)}
                       className={`w-full rounded-xl border p-3.5 text-left transition sm:p-4 ${
                         isSelected
-                          ? "border-[#8B5CF6] bg-[#8B5CF6]/10"
-                          : "border-white/10 bg-[#171329] hover:border-white/30"
+                          ? "border-green-500 bg-green-500/10"
+                          : `${innerSurfaceClass} hover:border-green-500/40`
                       }`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#8B5CF6]/15 text-[#B99AFF]">
+                        <div
+                          className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${iconBoxClass}`}
+                        >
                           <AddressIcon size={19} />
                         </div>
 
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-sm font-bold text-white">
+                            <h3 className={`text-sm font-bold ${headingClass}`}>
                               {item.label}
                             </h3>
 
                             {isDefault && (
-                              <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400">
+                              <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-500">
                                 Default
                               </span>
                             )}
 
                             {isSelected && (
-                              <span className="rounded-full bg-[#8B5CF6]/20 px-2 py-0.5 text-[10px] font-semibold text-[#B99AFF]">
+                              <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-500">
                                 Selected
                               </span>
                             )}
                           </div>
 
-                          <p className="mt-2 text-sm font-semibold text-white">
+                          <p
+                            className={`mt-2 text-sm font-semibold ${headingClass}`}
+                          >
                             {item.fullName}
                           </p>
 
-                          <p className="mt-1 text-xs text-[#AAA3C1]">
+                          <p className={`mt-1 text-xs ${mutedClass}`}>
                             {item.phone}
                           </p>
 
-                          <p className="mt-2 flex items-start gap-2 text-xs leading-5 text-[#AAA3C1]">
+                          <p
+                            className={`mt-2 flex items-start gap-2 text-xs leading-5 ${mutedClass}`}
+                          >
                             <MapPinned size={14} className="mt-0.5 shrink-0" />
                             <span>
                               {item.address}, {item.area}, {item.district}
@@ -653,10 +719,12 @@ function Checkout() {
                           {isSelected ? (
                             <CheckCircle2
                               size={21}
-                              className="text-[#B99AFF]"
+                              className="text-green-500"
                             />
                           ) : (
-                            <div className="h-5 w-5 rounded-full border border-white/30" />
+                            <div
+                              className={`h-5 w-5 rounded-full border ${isDark ? "border-white/30" : "border-gray-300"}`}
+                            />
                           )}
                         </div>
                       </div>
@@ -665,24 +733,29 @@ function Checkout() {
                 })}
               </div>
             ) : (
-              <div className="mt-5 rounded-xl border border-dashed border-white/15 bg-[#171329] px-4 py-6 text-center">
-                <MapPin size={27} className="mx-auto text-[#B99AFF]" />
+              <div
+                className={`mt-5 rounded-xl border border-dashed px-4 py-6 text-center ${innerSurfaceClass}`}
+              >
+                <MapPin size={27} className="mx-auto text-green-500" />
 
-                <p className="mt-3 text-sm font-semibold text-white">
+                <p className={`mt-3 text-sm font-semibold ${headingClass}`}>
                   No Saved Address
                 </p>
 
-                <p className="mt-1 text-xs text-[#AAA3C1]">
+                <p className={`mt-1 text-xs ${mutedClass}`}>
                   You can add an address if needed.
                 </p>
               </div>
             )}
 
-            {/* Address Form */}
             {showAddressForm && (
-              <div className="mt-5 space-y-4 rounded-xl border border-[#8B5CF6]/30 bg-[#171329] p-4 sm:p-5">
+              <div
+                className={`mt-5 space-y-4 rounded-xl border border-green-500/30 p-4 sm:p-5 ${innerSurfaceClass}`}
+              >
                 <div className="flex items-center justify-between gap-3">
-                  <h3 className="font-bold text-white">Add New Address</h3>
+                  <h3 className={`font-bold ${headingClass}`}>
+                    Add New Address
+                  </h3>
 
                   <button
                     type="button"
@@ -690,7 +763,7 @@ function Checkout() {
                       setShowAddressForm(false);
                       setAddressForm(emptyAddress);
                     }}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg text-[#AAA3C1] hover:bg-white/10 hover:text-white"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-red-400 hover:bg-red-500/10"
                     aria-label="Close address form"
                   >
                     <Trash2 size={16} />
@@ -710,8 +783,8 @@ function Checkout() {
                       }
                       className={`flex min-h-11 items-center justify-center gap-2 rounded-lg border text-sm font-semibold transition ${
                         addressForm.label === label
-                          ? "border-[#8B5CF6] bg-[#8B5CF6]/15 text-[#B99AFF]"
-                          : "border-white/10 text-[#AAA3C1]"
+                          ? "border-green-500 bg-green-500/10 text-green-500"
+                          : `${mutedClass} ${isDark ? "border-white/10" : "border-gray-200"}`
                       }`}
                     >
                       {label === "Home" ? (
@@ -732,7 +805,7 @@ function Checkout() {
                   placeholder="Full Name"
                   maxLength={100}
                   autoComplete="name"
-                  className="w-full rounded-lg border border-white/10 bg-[#211B3B] px-4 py-3.5 text-sm text-white outline-none focus:border-[#8B5CF6] placeholder:text-[#77718E]"
+                  className={`w-full rounded-lg border px-4 py-3.5 text-sm outline-none ${inputClass}`}
                 />
 
                 <input
@@ -748,7 +821,7 @@ function Checkout() {
                   placeholder="Phone Number (01XXXXXXXXX)"
                   maxLength={15}
                   inputMode="numeric"
-                  className="w-full rounded-lg border border-white/10 bg-[#211B3B] px-4 py-3.5 text-sm text-white outline-none focus:border-[#8B5CF6] placeholder:text-[#77718E]"
+                  className={`w-full rounded-lg border px-4 py-3.5 text-sm outline-none ${inputClass}`}
                 />
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -759,7 +832,7 @@ function Checkout() {
                     onChange={handleAddressChange}
                     placeholder="District"
                     maxLength={80}
-                    className="w-full rounded-lg border border-white/10 bg-[#211B3B] px-4 py-3.5 text-sm text-white outline-none focus:border-[#8B5CF6] placeholder:text-[#77718E]"
+                    className={`w-full rounded-lg border px-4 py-3.5 text-sm outline-none ${inputClass}`}
                   />
 
                   <input
@@ -769,7 +842,7 @@ function Checkout() {
                     onChange={handleAddressChange}
                     placeholder="Area / Upazila"
                     maxLength={100}
-                    className="w-full rounded-lg border border-white/10 bg-[#211B3B] px-4 py-3.5 text-sm text-white outline-none focus:border-[#8B5CF6] placeholder:text-[#77718E]"
+                    className={`w-full rounded-lg border px-4 py-3.5 text-sm outline-none ${inputClass}`}
                   />
                 </div>
 
@@ -780,13 +853,13 @@ function Checkout() {
                   placeholder="House number, road, area and other details"
                   rows={3}
                   maxLength={500}
-                  className="w-full resize-y rounded-lg border border-white/10 bg-[#211B3B] px-4 py-3.5 text-sm text-white outline-none focus:border-[#8B5CF6] placeholder:text-[#77718E]"
+                  className={`w-full resize-y rounded-lg border px-4 py-3.5 text-sm outline-none ${inputClass}`}
                 />
 
                 <button
                   type="button"
                   onClick={handleSaveAddress}
-                  className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#2563EB] px-4 py-3 text-sm font-bold text-white transition hover:opacity-90"
+                  className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-green-700"
                 >
                   <CheckCircle2 size={17} />
                   Save & Select Address
@@ -796,7 +869,7 @@ function Checkout() {
 
             <Link
               to="/addresses"
-              className="mt-4 inline-flex min-h-9 items-center gap-2 text-xs font-semibold text-[#38BDF8] hover:text-white"
+              className="mt-4 inline-flex min-h-9 items-center gap-2 text-xs font-semibold text-green-500 hover:text-green-400"
             >
               <Pencil size={14} />
               Manage Saved Addresses
@@ -804,16 +877,19 @@ function Checkout() {
           </div>
 
           {/* Customer Information */}
-          <div className="rounded-2xl border border-white/10 bg-[#211B3B] p-4 sm:p-6">
+          <div className={`rounded-2xl border p-4 sm:p-6 ${surfaceClass}`}>
             <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#8B5CF6]/15 text-[#B99AFF]">
+              <div
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconBoxClass}`}
+              >
                 <UserRound size={20} />
               </div>
 
               <div>
-                <h2 className="font-bold text-white">Customer Information</h2>
-
-                <p className="text-xs text-[#AAA3C1]">
+                <h2 className={`font-bold ${headingClass}`}>
+                  Customer Information
+                </h2>
+                <p className={`text-xs ${mutedClass}`}>
                   Confirm your contact details
                 </p>
               </div>
@@ -821,8 +897,10 @@ function Checkout() {
 
             <div className="space-y-4">
               <div>
-                <label className="mb-2 block text-xs font-semibold text-white">
-                  Full Name <span className="text-red-400">*</span>
+                <label
+                  className={`mb-2 block text-xs font-semibold ${headingClass}`}
+                >
+                  Full Name <span className="text-red-500">*</span>
                 </label>
 
                 <input
@@ -833,19 +911,21 @@ function Checkout() {
                   required
                   maxLength={80}
                   autoComplete="name"
-                  className="min-h-12 w-full rounded-xl border border-white/10 bg-[#171329] px-4 py-3.5 text-sm text-white outline-none transition focus:border-[#8B5CF6] placeholder:text-[#77718E]"
+                  className={`min-h-12 w-full rounded-xl border px-4 py-3.5 text-sm outline-none transition ${inputClass}`}
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-semibold text-white">
-                  Mobile Number <span className="text-red-400">*</span>
+                <label
+                  className={`mb-2 block text-xs font-semibold ${headingClass}`}
+                >
+                  Mobile Number <span className="text-red-500">*</span>
                 </label>
 
                 <div className="relative">
                   <Phone
                     size={17}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#AAA3C1]"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
                   />
 
                   <input
@@ -858,15 +938,17 @@ function Checkout() {
                     required
                     inputMode="numeric"
                     autoComplete="tel"
-                    className="min-h-12 w-full rounded-xl border border-white/10 bg-[#171329] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition focus:border-[#8B5CF6] placeholder:text-[#77718E]"
+                    className={`min-h-12 w-full rounded-xl border py-3.5 pl-11 pr-4 text-sm outline-none transition ${inputClass}`}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-semibold text-white">
+                <label
+                  className={`mb-2 block text-xs font-semibold ${headingClass}`}
+                >
                   Email Address
-                  <span className="ml-2 font-normal text-[#AAA3C1]">
+                  <span className={`ml-2 font-normal ${mutedClass}`}>
                     (Optional)
                   </span>
                 </label>
@@ -874,7 +956,7 @@ function Checkout() {
                 <div className="relative">
                   <Mail
                     size={17}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#AAA3C1]"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
                   />
 
                   <input
@@ -884,25 +966,28 @@ function Checkout() {
                     onChange={(e) => setEmail(e.target.value)}
                     maxLength={120}
                     autoComplete="email"
-                    className="min-h-12 w-full rounded-xl border border-white/10 bg-[#171329] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition focus:border-[#8B5CF6] placeholder:text-[#77718E]"
+                    className={`min-h-12 w-full rounded-xl border py-3.5 pl-11 pr-4 text-sm outline-none transition ${inputClass}`}
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Payment Preference */}
-          <div className="rounded-2xl border border-white/10 bg-[#211B3B] p-4 sm:p-6">
+          {/* Mobile Banking Payment */}
+          <div className={`rounded-2xl border p-4 sm:p-6 ${surfaceClass}`}>
             <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#8B5CF6]/15 text-[#B99AFF]">
+              <div
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconBoxClass}`}
+              >
                 <CreditCard size={20} />
               </div>
 
               <div>
-                <h2 className="font-bold text-white">Payment Preference</h2>
-
-                <p className="text-xs text-[#AAA3C1]">
-                  Select your preferred payment method
+                <h2 className={`font-bold ${headingClass}`}>
+                  Mobile Banking Payment
+                </h2>
+                <p className={`text-xs ${mutedClass}`}>
+                  Choose your payment method
                 </p>
               </div>
             </div>
@@ -916,8 +1001,8 @@ function Checkout() {
                   aria-pressed={paymentMethod === method.id}
                   className={`min-h-[76px] rounded-xl border-2 px-2 py-3 text-xs font-bold transition sm:text-sm ${
                     paymentMethod === method.id
-                      ? `${method.color} bg-[#171329] text-white`
-                      : "border-white/10 bg-[#171329] text-[#AAA3C1] hover:border-white/30"
+                      ? "border-green-500 bg-green-500/10 text-green-500"
+                      : `${innerSurfaceClass} ${mutedClass} hover:border-green-500/40`
                   }`}
                 >
                   {method.name}
@@ -925,28 +1010,116 @@ function Checkout() {
                   {paymentMethod === method.id && (
                     <CheckCircle2
                       size={16}
-                      className="mx-auto mt-2 text-[#B99AFF]"
+                      className="mx-auto mt-2 text-green-500"
                     />
                   )}
                 </button>
               ))}
             </div>
 
-            <div className="mt-5 flex items-start gap-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-3.5 sm:p-4">
-              <AlertCircle
-                size={19}
-                className="mt-0.5 shrink-0 text-yellow-400"
+            {selectedPaymentMethod && (
+              <div className="mt-5 rounded-xl border border-green-500/20 bg-green-500/5 p-4">
+                <p className={`text-xs font-semibold ${mutedClass}`}>
+                  Send Money to this Personal Account
+                </p>
+
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className={`text-lg font-extrabold ${headingClass}`}>
+                      {selectedPaymentMethod.number}
+                    </p>
+
+                    <p className="mt-1 text-xs text-green-500">
+                      {selectedPaymentMethod.name}{" "}
+                      {selectedPaymentMethod.type || "Personal"}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleCopyPaymentNumber}
+                    className="inline-flex items-center gap-2 rounded-lg border border-green-500/30 px-3 py-2 text-xs font-semibold text-green-500 transition hover:bg-green-500/10"
+                  >
+                    <Copy size={14} />
+                    Copy Number
+                  </button>
+                </div>
+
+                <div className={`mt-4 rounded-lg p-3 ${innerSurfaceClass}`}>
+                  <p className={`text-xs font-semibold ${headingClass}`}>
+                    Payment Instructions
+                  </p>
+
+                  <ol
+                    className={`mt-2 list-inside list-decimal space-y-1 text-xs leading-5 ${mutedClass}`}
+                  >
+                    <li>Open your {selectedPaymentMethod.name} app.</li>
+                    <li>Choose Send Money.</li>
+                    <li>Send the total amount shown in your order summary.</li>
+                    <li>Enter your Sender Number and Transaction ID below.</li>
+                  </ol>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-5 space-y-4">
+              <div>
+                <label
+                  className={`mb-2 block text-xs font-semibold ${headingClass}`}
+                >
+                  Sender Mobile Number <span className="text-red-500">*</span>
+                </label>
+
+                <input
+                  type="tel"
+                  value={senderNumber}
+                  onChange={(e) =>
+                    setSenderNumber(
+                      e.target.value.replace(/\D/g, "").slice(0, 13),
+                    )
+                  }
+                  placeholder="01XXXXXXXXX"
+                  maxLength={13}
+                  inputMode="numeric"
+                  className={`min-h-12 w-full rounded-xl border px-4 py-3 text-sm outline-none ${inputClass}`}
+                />
+              </div>
+
+              <div>
+                <label
+                  className={`mb-2 block text-xs font-semibold ${headingClass}`}
+                >
+                  Transaction ID (TrxID) <span className="text-red-500">*</span>
+                </label>
+
+                <input
+                  type="text"
+                  value={transactionId}
+                  onChange={(e) =>
+                    setTransactionId(e.target.value.trimStart().slice(0, 100))
+                  }
+                  placeholder="Enter your Transaction ID"
+                  maxLength={100}
+                  className={`min-h-12 w-full rounded-xl border px-4 py-3 text-sm outline-none ${inputClass}`}
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+              <ShieldCheck
+                size={20}
+                className="mt-0.5 shrink-0 text-amber-500"
               />
 
               <div>
-                <p className="text-sm font-semibold text-yellow-300">
-                  Payment Instructions
+                <p className="text-sm font-semibold text-amber-500">
+                  Payment Verification Required
                 </p>
 
-                <p className="mt-1 text-xs leading-6 text-[#AAA3C1]">
-                  This is only your preferred payment method. Do not send money
-                  now. Our team will confirm product availability and provide
-                  payment instructions through WhatsApp.
+                <p className={`mt-2 text-xs leading-6 ${mutedClass}`}>
+                  Your payment will be verified manually by our team. Your order
+                  will remain pending until payment is confirmed. Never share
+                  your PIN or OTP.
                 </p>
               </div>
             </div>
@@ -955,118 +1128,129 @@ function Checkout() {
 
         {/* Order Summary */}
         <aside className="min-w-0 space-y-4 lg:sticky lg:top-24">
-          <div className="rounded-2xl border border-white/10 bg-[#211B3B] p-4 sm:p-6">
+          <div className={`rounded-2xl border p-4 sm:p-6 ${surfaceClass}`}>
             <div className="flex items-center justify-between gap-3">
-              <h2 className="font-bold text-white">Order Summary</h2>
+              <h2 className={`font-bold ${headingClass}`}>Order Summary</h2>
 
-              <span className="rounded-full bg-[#8B5CF6]/15 px-3 py-1 text-xs font-bold text-[#B99AFF]">
+              <span className="rounded-full bg-green-500/10 px-3 py-1 text-xs font-bold text-green-500">
                 {totalQuantity} Items
               </span>
             </div>
 
-            {/* Products */}
             <div className="mt-5 max-h-72 space-y-4 overflow-y-auto pr-1">
               {validatedItems.map((item) => (
                 <div key={item.cartId} className="flex min-w-0 gap-3">
-                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-[#171329]">
+                  <div
+                    className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-lg ${innerSurfaceClass}`}
+                  >
                     {item.image ? (
                       <img
                         src={item.image}
-                        alt={item.name}
+                        alt={item.currentProduct?.name || item.name}
                         loading="lazy"
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-[#B99AFF]">
+                      <div className="flex h-full items-center justify-center text-green-500">
                         <Package size={22} />
                       </div>
                     )}
 
-                    <span className="absolute bottom-0 right-0 rounded-tl-md bg-[#8B5CF6] px-1.5 py-0.5 text-[9px] font-bold text-white">
+                    <span className="absolute bottom-0 right-0 rounded-tl-md bg-green-600 px-1.5 py-0.5 text-[9px] font-bold text-white">
                       {item.quantity}
                     </span>
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 text-xs font-bold text-white">
-                      {item.name}
+                    <p
+                      className={`line-clamp-2 text-xs font-bold ${headingClass}`}
+                    >
+                      {item.currentProduct?.name || item.name}
                     </p>
 
-                    <p className="mt-1 truncate text-[10px] text-[#B99AFF]">
+                    <p className="mt-1 truncate text-[10px] text-green-500">
                       {item.currentVariant?.name ||
                         item.variantName ||
                         "Default"}
                     </p>
 
-                    <p className="mt-1 text-[10px] text-[#AAA3C1]">
+                    <p className={`mt-1 text-[10px] ${mutedClass}`}>
                       {formatPrice(item.currentPrice)} × {item.quantity}
                     </p>
 
                     {item.issue && (
-                      <p className="mt-1 text-[10px] font-semibold text-amber-300">
+                      <p className="mt-1 text-[10px] font-semibold text-red-500">
                         Needs attention
                       </p>
                     )}
                   </div>
 
-                  <p className="shrink-0 text-xs font-bold text-white">
+                  <p className={`shrink-0 text-xs font-bold ${headingClass}`}>
                     {formatPrice(item.currentPrice * item.quantity)}
                   </p>
                 </div>
               ))}
             </div>
 
-            <div className="my-5 border-t border-white/10" />
+            <div
+              className={`my-5 border-t ${isDark ? "border-white/10" : "border-gray-200"}`}
+            />
 
-            {/* Price Details */}
             <div className="space-y-3">
-              <div className="flex justify-between gap-3 text-sm text-[#AAA3C1]">
+              <div
+                className={`flex justify-between gap-3 text-sm ${mutedClass}`}
+              >
                 <span>Subtotal</span>
-
-                <span className="font-semibold text-white">
+                <span className={`font-semibold ${headingClass}`}>
                   {formatPrice(subtotal)}
                 </span>
               </div>
 
-              <div className="flex justify-between gap-3 text-sm text-[#AAA3C1]">
+              <div
+                className={`flex justify-between gap-3 text-sm ${mutedClass}`}
+              >
                 <span>Delivery Fee</span>
-                <span className="font-semibold text-[#38BDF8]">Free</span>
+                <span className="font-semibold text-green-500">Free</span>
               </div>
 
-              <div className="border-t border-white/10 pt-4">
+              <div
+                className={`border-t pt-4 ${isDark ? "border-white/10" : "border-gray-200"}`}
+              >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-bold text-white">Total Amount</span>
+                  <span className={`font-bold ${headingClass}`}>
+                    Total Amount
+                  </span>
 
-                  <span className="text-xl font-extrabold text-[#B99AFF]">
+                  <span className="text-xl font-extrabold text-green-500">
                     {formatPrice(subtotal)}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Selected Address */}
             {selectedAddress && (
-              <div className="mt-5 rounded-xl border border-white/10 bg-[#171329] p-3">
-                <p className="text-xs font-bold text-[#B99AFF]">
+              <div
+                className={`mt-5 rounded-xl border p-3 ${innerSurfaceClass}`}
+              >
+                <p className="text-xs font-bold text-green-500">
                   Selected Address
                 </p>
 
-                <p className="mt-2 text-sm font-semibold text-white">
+                <p className={`mt-2 text-sm font-semibold ${headingClass}`}>
                   {selectedAddress.fullName}
                 </p>
 
-                <p className="mt-1 text-xs leading-5 text-[#AAA3C1]">
+                <p className={`mt-1 text-xs leading-5 ${mutedClass}`}>
                   {selectedAddress.address}, {selectedAddress.area},{" "}
                   {selectedAddress.district}
                 </p>
               </div>
             )}
 
-            {/* WhatsApp Button */}
             <button
               type="submit"
               disabled={isOpeningWhatsApp || hasUnavailableItems}
-              className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-green-950/20 transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-600 disabled:opacity-60"
+              className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-green-950/20 transition hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-500 disabled:opacity-60"
             >
               <MessageCircle size={19} />
 
@@ -1077,30 +1261,34 @@ function Checkout() {
                   : "Continue to WhatsApp"}
             </button>
 
-            <p className="mt-3 text-center text-[10px] leading-5 text-[#AAA3C1]">
-              Your order details will be prepared in WhatsApp. The store will
-              confirm your order manually.
+            <p
+              className={`mt-3 text-center text-[10px] leading-5 ${mutedClass}`}
+            >
+              Your order and payment details will be prepared in WhatsApp.
+              Payment will be verified manually by our team.
             </p>
 
-            <div className="mt-5 flex items-center justify-center gap-2 text-center text-[11px] text-[#AAA3C1]">
-              <ShieldCheck size={15} className="text-[#38BDF8]" />
-              Manual order confirmation
+            <div
+              className={`mt-5 flex items-center justify-center gap-2 text-center text-[11px] ${mutedClass}`}
+            >
+              <ShieldCheck size={15} className="text-green-500" />
+              Manual payment verification
             </div>
           </div>
 
           {/* Delivery Information */}
-          <div className="rounded-xl border border-white/10 bg-[#211B3B] p-4">
+          <div className={`rounded-xl border p-4 ${surfaceClass}`}>
             <div className="flex items-start gap-3">
-              <Package size={18} className="mt-0.5 shrink-0 text-[#38BDF8]" />
+              <Package size={18} className="mt-0.5 shrink-0 text-green-500" />
 
               <div>
-                <p className="text-xs font-bold text-white">
+                <p className={`text-xs font-bold ${headingClass}`}>
                   Digital Product Delivery
                 </p>
 
-                <p className="mt-1 text-xs leading-5 text-[#AAA3C1]">
-                  After order confirmation, our team will arrange delivery
-                  through WhatsApp, Email or both.
+                <p className={`mt-1 text-xs leading-5 ${mutedClass}`}>
+                  After order and payment confirmation, our team will arrange
+                  delivery through WhatsApp, Email or both.
                 </p>
               </div>
             </div>

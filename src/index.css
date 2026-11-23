@@ -2,17 +2,73 @@
 
 @import "tailwindcss";
 
-@theme {
-  --color-nexora-bg: #11101c;
-  --color-nexora-card: #211b3b;
-  --color-nexora-purple: #8b5cf6;
-  --color-nexora-blue: #38bdf8;
-  --color-nexora-highlight: #b99aff;
-  --color-nexora-muted: #aaa3c1;
+/* =========================================
+   AI-SaleBD — DARK PREMIUM DESIGN SYSTEM
+   Primary: Green | Secondary: Red
+========================================= */
 
+@theme {
+  /* Brand Colors */
+  --color-ai-green: #16a34a;
+  --color-ai-green-dark: #15803d;
+  --color-ai-green-light: #4ade80;
+
+  --color-ai-red: #e11d48;
+  --color-ai-red-dark: #be123c;
+  --color-ai-red-light: #fb7185;
+
+  /* Backgrounds */
+  --color-ai-bg: #0b0f0c;
+  --color-ai-surface: #111711;
+  --color-ai-card: #141a15;
+  --color-ai-card-hover: #1a231b;
+
+  /* Text */
+  --color-ai-text: #f5f7f5;
+  --color-ai-muted: #a3ada4;
+  --color-ai-border: rgba(255, 255, 255, 0.08);
+
+  /* Typography */
   --font-inter: "Inter", sans-serif;
   --font-bangla: "Hind Siliguri", sans-serif;
+
+  /* Legacy compatibility */
+  --color-nexora-bg: #0b0f0c;
+  --color-nexora-card: #141a15;
+  --color-nexora-purple: #16a34a;
+  --color-nexora-blue: #16a34a;
+  --color-nexora-highlight: #4ade80;
+  --color-nexora-muted: #a3ada4;
 }
+
+/* =========================================
+   ROOT VARIABLES
+========================================= */
+
+:root {
+  color-scheme: dark;
+
+  --ai-primary: #16a34a;
+  --ai-primary-hover: #15803d;
+  --ai-primary-light: #4ade80;
+
+  --ai-secondary: #e11d48;
+  --ai-secondary-hover: #be123c;
+  --ai-secondary-light: #fb7185;
+
+  --ai-bg: #0b0f0c;
+  --ai-surface: #111711;
+  --ai-card: #141a15;
+  --ai-card-hover: #1a231b;
+
+  --ai-text: #f5f7f5;
+  --ai-muted: #a3ada4;
+  --ai-border: rgba(255, 255, 255, 0.08);
+}
+
+/* =========================================
+   GLOBAL RESET
+========================================= */
 
 * {
   box-sizing: border-box;
@@ -20,15 +76,19 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 85px;
+  background: var(--ai-bg);
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #11101c;
-  color: white;
+  background: var(--ai-bg);
+  color: var(--ai-text);
   font-family: "Inter", "Hind Siliguri", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 button,
@@ -40,34 +100,234 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+}
+
 a {
+  color: inherit;
   text-decoration: none;
 }
 
 input,
-button {
+button,
+textarea,
+select {
   font: inherit;
 }
+
+/* =========================================
+   GLOBAL CONTAINER
+========================================= */
 
 .container-custom {
   width: 100%;
   max-width: 1280px;
   margin-inline: auto;
-  padding-inline: 16px;
+  padding-inline: 12px;
 }
 
+@media (min-width: 640px) {
+  .container-custom {
+    padding-inline: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-custom {
+    padding-inline: 24px;
+  }
+}
+
+/* =========================================
+   BRAND GRADIENTS
+========================================= */
+
 .gradient-text {
-  background: linear-gradient(90deg, #8b5cf6, #38bdf8);
+  background: linear-gradient(100deg, #4ade80 0%, #16a34a 70%, #e11d48 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-.glow-purple {
-  box-shadow: 0 0 30px rgba(139, 92, 246, 0.2);
+.gradient-brand {
+  background: linear-gradient(110deg, #15803d 0%, #16a34a 75%, #e11d48 100%);
 }
 
+.gradient-brand-hover {
+  background: linear-gradient(110deg, #16a34a 0%, #22c55e 75%, #fb7185 100%);
+}
+
+/* =========================================
+   SUBTLE GLOW EFFECTS
+========================================= */
+
+.glow-green {
+  box-shadow: 0 0 24px rgba(22, 163, 74, 0.14);
+}
+
+.glow-red {
+  box-shadow: 0 0 20px rgba(225, 29, 72, 0.12);
+}
+
+.glow-brand {
+  box-shadow: 0 0 24px rgba(22, 163, 74, 0.12);
+}
+
+/* Legacy purple class compatibility */
+.glow-purple {
+  box-shadow: 0 0 24px rgba(22, 163, 74, 0.12);
+}
+
+/* =========================================
+   PREMIUM CARD
+========================================= */
+
+.premium-card {
+  background: var(--ai-card);
+  border: 1px solid var(--ai-border);
+  border-radius: 16px;
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.premium-card:hover {
+  background: var(--ai-card-hover);
+  border-color: rgba(22, 163, 74, 0.3);
+}
+
+/* =========================================
+   PRIMARY BUTTON — GREEN
+========================================= */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border: 1px solid var(--ai-primary);
+  border-radius: 10px;
+  background: var(--ai-primary);
+  color: #ffffff;
+  font-weight: 700;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: var(--ai-primary-hover);
+  border-color: var(--ai-primary-hover);
+  box-shadow: 0 5px 18px rgba(22, 163, 74, 0.16);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* =========================================
+   SECONDARY BUTTON — RED
+========================================= */
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border: 1px solid var(--ai-secondary);
+  border-radius: 10px;
+  background: var(--ai-secondary);
+  color: #ffffff;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--ai-secondary-hover);
+  border-color: var(--ai-secondary-hover);
+}
+
+/* =========================================
+   FORM ELEMENTS
+========================================= */
+
+input,
+textarea,
+select {
+  color: var(--ai-text);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #737d74;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--ai-primary);
+}
+
+/* =========================================
+   SCROLLBAR
+========================================= */
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--ai-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #354137;
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ai-primary);
+}
+
+/* =========================================
+   TEXT SELECTION
+========================================= */
+
 ::selection {
-  background: #8b5cf6;
-  color: white;
+  background: rgba(22, 163, 74, 0.35);
+  color: #ffffff;
+}
+
+/* =========================================
+   ACCESSIBILITY
+========================================= */
+
+:focus-visible {
+  outline: 2px solid var(--ai-primary-light);
+  outline-offset: 3px;
+}
+
+/* =========================================
+   REDUCED MOTION
+========================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

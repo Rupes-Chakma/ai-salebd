@@ -35,26 +35,25 @@ const ProductDetails = () => {
 
   const product = safeProducts.find((item) => String(item.id) === String(id));
 
-  // Product Not Found
-  if (!product || product.status !== "Active") {
+  if (!product || (product.status && product.status !== "Active")) {
     return (
-      <section className="flex min-h-[70vh] items-center justify-center bg-[#09090F] px-4 py-12 text-center">
+      <section className="flex min-h-[70vh] items-center justify-center bg-[#0B0F0C] px-4 py-12 text-center text-white">
         <div className="max-w-md">
-          <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-[#8B5CF6]/20 bg-[#8B5CF6]/10">
-            <Package size={38} className="text-[#B99AFF]" />
+          <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-[#16A34A]/20 bg-[#16A34A]/10">
+            <Package size={38} className="text-[#4ADE80]" />
           </div>
 
           <h2 className="text-2xl font-extrabold text-white">
             Product Not Found
           </h2>
 
-          <p className="mt-3 text-sm leading-6 text-[#AAA3C1]">
-            এই Product টি পাওয়া যায়নি অথবা বর্তমানে Active নেই।
+          <p className="mt-3 text-sm leading-6 text-[#A3ADA4]">
+            This product is unavailable or currently inactive.
           </p>
 
           <Link
             to="/shop"
-            className="mt-7 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#2563EB] px-6 py-3 text-sm font-bold text-white transition hover:shadow-lg hover:shadow-purple-900/30"
+            className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[#16A34A] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#15803D]"
           >
             <ShoppingBag size={17} />
             Back to Shop
@@ -68,80 +67,71 @@ const ProductDetails = () => {
 
   const currentVariant = variants.find((variant) => {
     const variantName = typeof variant === "string" ? variant : variant.name;
-
     return variantName === selectedVariant;
   });
 
   const basePrice = Number(currentVariant?.price ?? product.price ?? 0);
   const totalPrice = basePrice * quantity;
 
-  // Add Product to Cart
-  const handleAddToCart = () => {
+  const validateProduct = () => {
     if (variants.length > 0 && !selectedVariant) {
       toast.error("Please select a product variant");
-      return;
+      return false;
     }
+
+    if (!Number.isFinite(basePrice) || basePrice <= 0) {
+      toast.error("Product price is not available");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleAddToCart = () => {
+    if (!validateProduct()) return;
 
     addToCart(product, currentVariant, quantity);
     toast.success("Product added to cart!");
   };
 
-  // Order Single Product via WhatsApp
-  const handleWhatsAppOrder = () => {
-    if (variants.length > 0 && !selectedVariant) {
-      toast.error("Please select a product variant");
-      return;
-    }
+  const handleBuyNow = () => {
+    if (!validateProduct()) return;
 
-    if (!Number.isFinite(basePrice) || basePrice <= 0) {
-      toast.error("Product price is not available");
-      return;
-    }
+    addToCart(product, currentVariant, quantity);
+    navigate("/checkout");
+  };
 
-    const variantName = currentVariant
-      ? typeof currentVariant === "string"
-        ? currentVariant
-        : currentVariant.name
-      : "Default";
+  const handleWhatsAppSupport = () => {
+    const message = `Hello AI-SaleBD Support! I need help regarding ${product.name}.`;
 
-    const message = `
-Hello AI-SaleBD! I want to order this product.
+    const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+      message,
+    )}`;
 
-Product: ${product.name}
-Category: ${product.category || "N/A"}
-Package / Variant: ${variantName}
-Unit Price: ৳${basePrice.toLocaleString("en-BD")}
-Quantity: ${quantity}
-Total Price: ৳${totalPrice.toLocaleString("en-BD")}
-
-Please confirm my order.
-
-Thank you!
-    `.trim();
-
-    const whatsappURL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-
-    window.open(whatsappURL, "_blank", "noopener,noreferrer");
+    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
-    <section className="relative min-h-screen overflow-hidden bg-[#09090F] py-7 text-white sm:py-10 lg:py-12">
-      {/* Background Effects */}
-      <div className="pointer-events-none absolute -left-40 top-40 h-80 w-80 rounded-full bg-[#8B5CF6]/10 blur-[110px]" />
-      <div className="pointer-events-none absolute -right-40 bottom-20 h-80 w-80 rounded-full bg-[#2563EB]/10 blur-[110px]" />
+    <section className="relative min-h-screen overflow-hidden bg-[#0B0F0C] py-7 text-white sm:py-10 lg:py-12">
+      <div className="pointer-events-none absolute -left-40 top-40 h-80 w-80 rounded-full bg-[#16A34A]/10 blur-[110px]" />
+      <div className="pointer-events-none absolute -right-40 bottom-20 h-80 w-80 rounded-full bg-[#E11D48]/10 blur-[110px]" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-4">
         {/* Breadcrumb */}
-        <div className="mb-6 flex flex-wrap items-center gap-2 text-xs text-[#8F88A5] sm:text-sm">
-          <Link to="/" className="transition hover:text-white">
+        <div className="mb-6 flex flex-wrap items-center gap-2 text-xs text-[#A3ADA4] sm:text-sm">
+          <Link to="/" className="transition hover:text-[#4ADE80]">
             Home
           </Link>
+
           <span>/</span>
-          <Link to="/shop" className="transition hover:text-white">
+
+          <Link to="/shop" className="transition hover:text-[#4ADE80]">
             Shop
           </Link>
+
           <span>/</span>
-          <span className="max-w-[180px] truncate text-[#C4A7FF]">
+
+          <span className="max-w-[180px] truncate text-[#4ADE80]">
             {product.name}
           </span>
         </div>
@@ -150,7 +140,7 @@ Thank you!
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="mb-7 inline-flex items-center gap-2 rounded-lg text-sm font-medium text-[#AAA3C1] transition hover:text-white"
+          className="mb-7 inline-flex items-center gap-2 rounded-lg text-sm font-medium text-[#A3ADA4] transition hover:text-[#4ADE80]"
         >
           <ArrowLeft size={17} />
           Back
@@ -159,9 +149,8 @@ Thank you!
         <div className="grid grid-cols-1 items-start gap-7 lg:grid-cols-2 lg:gap-12">
           {/* Product Image */}
           <div className="lg:sticky lg:top-8">
-            <div className="group relative flex min-h-[300px] items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#211B3B] via-[#171426] to-[#10101A] sm:min-h-[420px] lg:min-h-[520px]">
-              {/* Decorative Glow */}
-              <div className="pointer-events-none absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#8B5CF6]/10 blur-[90px]" />
+            <div className="group relative flex min-h-[300px] items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#1A231B] via-[#141A15] to-[#101510] sm:min-h-[420px] lg:min-h-[520px]">
+              <div className="pointer-events-none absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#16A34A]/10 blur-[90px]" />
 
               {product.image ? (
                 <img
@@ -170,36 +159,36 @@ Thank you!
                   className="relative z-10 max-h-[500px] w-full object-contain p-6 transition-transform duration-700 group-hover:scale-105 sm:p-10"
                 />
               ) : (
-                <Package size={90} className="relative z-10 text-[#B99AFF]" />
+                <Package size={90} className="relative z-10 text-[#4ADE80]" />
               )}
 
-              {/* Product Badge */}
               {product.badge && (
-                <span className="absolute left-4 top-4 z-20 inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#8B5CF6] px-4 py-2 text-xs font-bold text-white shadow-lg shadow-purple-950/30 sm:left-5 sm:top-5">
+                <span className="absolute left-4 top-4 z-20 inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#E11D48] px-4 py-2 text-xs font-bold text-white shadow-lg sm:left-5 sm:top-5">
                   <Sparkles size={14} />
                   {product.badge}
                 </span>
               )}
 
-              {/* Image Label */}
               <div className="absolute bottom-4 right-4 z-20 rounded-full border border-white/10 bg-black/30 px-3 py-1.5 text-[10px] font-semibold text-white/70 backdrop-blur-md">
                 AI-SaleBD Marketplace
               </div>
             </div>
 
-            {/* Image Caption */}
-            <p className="mt-3 text-center text-xs text-[#77718D]">
+            <p className="mt-3 text-center text-xs text-[#A3ADA4]">
               Explore product details and choose your preferred package.
             </p>
           </div>
 
           {/* Product Information */}
-          <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#211B3B]/90 to-[#151323]/90 p-5 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-7 lg:p-8">
+          <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#172019]/95 to-[#111711]/95 p-5 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-7 lg:p-8">
             {/* Category */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#8B5CF6]/25 bg-[#8B5CF6]/10 px-3 py-1.5">
-              <Sparkles size={13} className="text-[#C4A7FF]" />
-              <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-[#C4A7FF] sm:text-xs">
-                {product.category || "Digital Product"}
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#16A34A]/25 bg-[#16A34A]/10 px-3 py-1.5">
+              <Sparkles size={13} className="text-[#4ADE80]" />
+
+              <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-[#4ADE80] sm:text-xs">
+                {typeof product.category === "object"
+                  ? product.category?.name || "Digital Product"
+                  : product.category || "Digital Product"}
               </span>
             </div>
 
@@ -209,30 +198,30 @@ Thank you!
             </h1>
 
             {/* Description */}
-            <p className="mt-4 text-sm leading-7 text-[#AAA3C1] sm:text-base">
+            <p className="mt-4 text-sm leading-7 text-[#A3ADA4] sm:text-base">
               {product.description ||
                 "Explore this digital product from AI-SaleBD."}
             </p>
 
-            {/* Price Card */}
-            <div className="mt-7 rounded-2xl border border-[#8B5CF6]/20 bg-gradient-to-r from-[#8B5CF6]/10 to-[#2563EB]/5 p-4 sm:p-5">
-              <p className="text-xs font-semibold text-[#AAA3C1]">
+            {/* Price */}
+            <div className="mt-7 rounded-2xl border border-[#16A34A]/20 bg-gradient-to-r from-[#16A34A]/10 to-[#E11D48]/5 p-4 sm:p-5">
+              <p className="text-xs font-semibold text-[#A3ADA4]">
                 Current Price
               </p>
 
               <div className="mt-2 flex flex-wrap items-center gap-3">
-                <span className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                <span className="text-3xl font-extrabold tracking-tight text-[#4ADE80] sm:text-4xl">
                   ৳{basePrice.toLocaleString("en-BD")}
                 </span>
 
                 {product.oldPrice && Number(product.oldPrice) > basePrice && (
-                  <span className="text-base font-medium text-[#8F88A5] line-through">
+                  <span className="text-base font-medium text-[#A3ADA4] line-through">
                     ৳{Number(product.oldPrice).toLocaleString("en-BD")}
                   </span>
                 )}
               </div>
 
-              <p className="mt-2 text-[11px] text-[#AAA3C1]">
+              <p className="mt-2 text-[11px] text-[#A3ADA4]">
                 Price may vary depending on the selected package.
               </p>
             </div>
@@ -246,7 +235,7 @@ Thank you!
                   </h3>
 
                   {selectedVariant && (
-                    <span className="text-xs font-medium text-[#B99AFF]">
+                    <span className="text-xs font-medium text-[#4ADE80]">
                       Selected
                     </span>
                   )}
@@ -267,10 +256,11 @@ Thank you!
                         key={index}
                         type="button"
                         onClick={() => setSelectedVariant(variantName)}
+                        aria-pressed={isSelected}
                         className={`flex min-h-[58px] items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-all duration-200 ${
                           isSelected
-                            ? "border-[#8B5CF6] bg-[#8B5CF6]/15 text-white shadow-lg shadow-purple-950/20"
-                            : "border-white/10 bg-[#171426] text-[#AAA3C1] hover:border-[#8B5CF6]/50 hover:text-white"
+                            ? "border-[#16A34A] bg-[#16A34A]/15 text-white shadow-lg shadow-green-950/20"
+                            : "border-white/10 bg-[#141A15] text-[#A3ADA4] hover:border-[#16A34A]/50 hover:text-white"
                         }`}
                       >
                         <span className="text-sm font-semibold">
@@ -280,13 +270,13 @@ Thank you!
                         <span className="flex shrink-0 items-center gap-2">
                           {variantPrice !== null &&
                             variantPrice !== undefined && (
-                              <span className="text-xs font-bold text-[#C4A7FF]">
+                              <span className="text-xs font-bold text-[#4ADE80]">
                                 ৳{Number(variantPrice).toLocaleString("en-BD")}
                               </span>
                             )}
 
                           {isSelected && (
-                            <Check size={17} className="text-[#C4A7FF]" />
+                            <Check size={17} className="text-[#4ADE80]" />
                           )}
                         </span>
                       </button>
@@ -295,7 +285,7 @@ Thank you!
                 </div>
 
                 {!selectedVariant && (
-                  <p className="mt-3 text-xs text-[#C4A7FF]">
+                  <p className="mt-3 text-xs text-[#FB7185]">
                     Please select a package before ordering.
                   </p>
                 )}
@@ -308,7 +298,7 @@ Thank you!
                 Quantity
               </h3>
 
-              <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 bg-[#171426] p-3">
+              <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 bg-[#141A15] p-3">
                 <div className="flex items-center overflow-hidden rounded-lg border border-white/10">
                   <button
                     type="button"
@@ -316,7 +306,7 @@ Thank you!
                       setQuantity((previous) => Math.max(1, previous - 1))
                     }
                     disabled={quantity <= 1}
-                    className="p-3 text-[#AAA3C1] transition hover:bg-[#8B5CF6]/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    className="p-3 text-[#A3ADA4] transition hover:bg-[#16A34A]/20 hover:text-[#4ADE80] disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Decrease quantity"
                   >
                     <Minus size={16} />
@@ -332,7 +322,7 @@ Thank you!
                       setQuantity((previous) => Math.min(99, previous + 1))
                     }
                     disabled={quantity >= 99}
-                    className="p-3 text-[#AAA3C1] transition hover:bg-[#8B5CF6]/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    className="p-3 text-[#A3ADA4] transition hover:bg-[#16A34A]/20 hover:text-[#4ADE80] disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Increase quantity"
                   >
                     <Plus size={16} />
@@ -340,10 +330,11 @@ Thank you!
                 </div>
 
                 <div className="text-right">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#8F88A5]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#A3ADA4]">
                     Total Price
                   </p>
-                  <p className="mt-1 text-lg font-extrabold text-[#C4A7FF]">
+
+                  <p className="mt-1 text-lg font-extrabold text-[#4ADE80]">
                     ৳{totalPrice.toLocaleString("en-BD")}
                   </p>
                 </div>
@@ -355,7 +346,7 @@ Thank you!
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className="flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-[#8B5CF6]/50 bg-[#8B5CF6]/10 px-4 py-3 text-sm font-bold text-[#C4A7FF] transition-all hover:border-[#8B5CF6] hover:bg-[#8B5CF6] hover:text-white hover:shadow-lg hover:shadow-purple-900/30"
+                className="flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-[#16A34A]/50 bg-[#16A34A]/10 px-4 py-3 text-sm font-bold text-[#4ADE80] transition-all hover:border-[#16A34A] hover:bg-[#16A34A] hover:text-white hover:shadow-lg"
               >
                 <ShoppingCart size={18} />
                 Add to Cart
@@ -363,51 +354,56 @@ Thank you!
 
               <button
                 type="button"
-                onClick={handleWhatsAppOrder}
-                className="flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#16A34A] to-[#15803D] px-4 py-3 text-sm font-bold text-white transition-all hover:from-[#15803D] hover:to-[#166534] hover:shadow-lg hover:shadow-green-950/30"
+                onClick={handleBuyNow}
+                className="flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-[#16A34A] px-4 py-3 text-sm font-bold text-white transition-all hover:bg-[#15803D] hover:shadow-lg"
               >
-                <MessageCircle size={19} />
-                Order via WhatsApp
+                <ShoppingBag size={19} />
+                Buy Now — ৳{totalPrice.toLocaleString("en-BD")}
               </button>
             </div>
 
-            {/* Trust Features */}
+            {/* Shopping Benefits */}
             <div className="mt-7 border-t border-white/10 pt-6">
-              <p className="mb-4 text-xs font-bold uppercase tracking-[1.5px] text-[#8F88A5]">
+              <p className="mb-4 text-xs font-bold uppercase tracking-[1.5px] text-[#A3ADA4]">
                 Shopping Benefits
               </p>
 
               <div className="grid grid-cols-2 gap-x-3 gap-y-5">
                 <div className="flex items-center gap-2.5">
-                  <ShieldCheck size={19} className="shrink-0 text-[#B99AFF]" />
-                  <span className="text-xs font-medium text-[#C4BED5]">
+                  <ShieldCheck size={19} className="shrink-0 text-[#4ADE80]" />
+                  <span className="text-xs font-medium text-[#D1D8D1]">
                     Secure Order
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2.5">
-                  <Zap size={19} className="shrink-0 text-[#B99AFF]" />
-                  <span className="text-xs font-medium text-[#C4BED5]">
+                  <Zap size={19} className="shrink-0 text-[#4ADE80]" />
+                  <span className="text-xs font-medium text-[#D1D8D1]">
                     Digital Product
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2.5">
-                  <Check size={19} className="shrink-0 text-[#B99AFF]" />
-                  <span className="text-xs font-medium text-[#C4BED5]">
+                  <Check size={19} className="shrink-0 text-[#4ADE80]" />
+                  <span className="text-xs font-medium text-[#D1D8D1]">
                     Easy Ordering
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2.5">
+                {/* WhatsApp Support */}
+                <button
+                  type="button"
+                  onClick={handleWhatsAppSupport}
+                  className="flex items-center gap-2.5 text-left transition hover:opacity-80"
+                >
                   <MessageCircle
                     size={19}
-                    className="shrink-0 text-[#B99AFF]"
+                    className="shrink-0 text-[#FB7185]"
                   />
-                  <span className="text-xs font-medium text-[#C4BED5]">
+                  <span className="text-xs font-medium text-[#D1D8D1]">
                     WhatsApp Support
                   </span>
-                </div>
+                </button>
               </div>
             </div>
           </div>
@@ -417,7 +413,7 @@ Thank you!
         <div className="mt-10 flex justify-center">
           <Link
             to="/shop"
-            className="group inline-flex items-center gap-2 text-sm font-semibold text-[#AAA3C1] transition hover:text-white"
+            className="group inline-flex items-center gap-2 text-sm font-semibold text-[#A3ADA4] transition hover:text-[#4ADE80]"
           >
             Continue Shopping
             <ArrowRight

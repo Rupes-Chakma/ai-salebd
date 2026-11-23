@@ -49,20 +49,20 @@ const categories = [
 
 export default function About() {
   return (
-    <main className="min-h-screen overflow-hidden bg-[#080711] text-white">
+    <main className="min-h-screen overflow-hidden bg-[#0B0F0C] text-[#F5F7F5]">
       {/* Hero Section */}
       <section className="relative px-4 pb-20 pt-20 sm:px-6 lg:px-8 lg:pb-28 lg:pt-28">
-        <div className="absolute left-1/2 top-0 -z-0 h-80 w-80 -translate-x-1/2 rounded-full bg-purple-600/20 blur-[120px]" />
-        <div className="absolute right-0 top-40 -z-0 h-72 w-72 rounded-full bg-blue-600/10 blur-[110px]" />
+        <div className="pointer-events-none absolute left-1/2 top-0 -z-0 h-80 w-80 -translate-x-1/2 rounded-full bg-[#16A34A]/15 blur-[120px]" />
+        <div className="pointer-events-none absolute right-0 top-40 -z-0 h-72 w-72 rounded-full bg-[#E11D48]/10 blur-[110px]" />
 
         <div className="relative mx-auto max-w-5xl text-center">
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="mb-6 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-sm text-purple-300"
+            className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#16A34A]/30 bg-[#16A34A]/10 px-4 py-2 text-sm text-[#4ADE80]"
           >
-            <span className="h-2 w-2 rounded-full bg-purple-400" />
+            <span className="h-2 w-2 rounded-full bg-[#4ADE80]" />
             Get to know AI-SaleBD
           </motion.div>
 
@@ -73,7 +73,7 @@ export default function About() {
             className="text-4xl font-extrabold leading-tight sm:text-5xl md:text-7xl"
           >
             Your Digital World,
-            <span className="block bg-gradient-to-r from-purple-400 via-fuchsia-400 to-blue-400 bg-clip-text text-transparent">
+            <span className="block bg-gradient-to-r from-[#4ADE80] via-[#16A34A] to-[#FB7185] bg-clip-text text-transparent">
               One Marketplace.
             </span>
           </motion.h1>
@@ -82,7 +82,7 @@ export default function About() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15 }}
-            className="mx-auto mt-7 max-w-2xl text-base leading-8 text-gray-400 sm:text-lg"
+            className="mx-auto mt-7 max-w-2xl text-base leading-8 text-[#A3ADA4] sm:text-lg"
           >
             AI-SaleBD is a digital marketplace designed to bring digital
             products together in one convenient place. Explore software, AI
@@ -97,7 +97,7 @@ export default function About() {
           >
             <Link
               to="/shop"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-7 py-3.5 font-semibold transition hover:scale-105 hover:shadow-lg hover:shadow-purple-500/20"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#16A34A] px-7 py-3.5 font-semibold text-white transition hover:scale-105 hover:bg-[#15803D] hover:shadow-lg hover:shadow-green-950/30"
             >
               Explore Marketplace
               <ArrowRight size={18} />
@@ -105,7 +105,7 @@ export default function About() {
 
             <Link
               to="/contact"
-              className="rounded-xl border border-white/10 bg-white/5 px-7 py-3.5 font-semibold text-gray-200 transition hover:border-purple-500/50 hover:bg-white/10"
+              className="rounded-xl border border-white/10 bg-white/5 px-7 py-3.5 font-semibold text-gray-200 transition hover:border-[#16A34A]/50 hover:bg-[#16A34A]/10 hover:text-[#4ADE80]"
             >
               Contact Us
             </Link>
@@ -122,7 +122,7 @@ export default function About() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <p className="mb-4 text-sm font-bold uppercase tracking-[0.25em] text-purple-400">
+            <p className="mb-4 text-sm font-bold uppercase tracking-[0.25em] text-[#4ADE80]">
               Who We Are
             </p>
 
@@ -130,14 +130,14 @@ export default function About() {
               Making the digital world more accessible.
             </h2>
 
-            <p className="mt-6 leading-8 text-gray-400">
+            <p className="mt-6 leading-8 text-[#A3ADA4]">
               AI-SaleBD aims to make digital shopping easier by bringing a
               variety of digital products into one marketplace. Instead of
               searching across multiple places, customers can explore different
               categories from a single platform.
             </p>
 
-            <p className="mt-4 leading-8 text-gray-400">
+            <p className="mt-4 leading-8 text-[#A3ADA4]">
               We are building AI-SaleBD with a focus on convenience, transparent
               information, and a smooth customer experience.
             </p>
@@ -149,11 +149,8 @@ export default function About() {
                 "Customer-focused communication",
               ].map((item) => (
                 <div key={item} className="flex items-center gap-3">
-                  <CheckCircle2
-                    size={19}
-                    className="shrink-0 text-purple-400"
-                  />
-                  <span className="text-sm text-gray-300">{item}</span>
+                  <CheckCircle2 size={19} className="shrink-0 text-[#4ADE80]" />
+                  <span className="text-sm text-[#D1D8D1]">{item}</span>
                 </div>
               ))}
             </div>
@@ -166,22 +163,22 @@ export default function About() {
             transition={{ duration: 0.6 }}
             className="relative"
           >
-            <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-purple-600/20 to-blue-600/20 blur-2xl" />
+            <div className="pointer-events-none absolute -inset-4 rounded-3xl bg-gradient-to-br from-[#16A34A]/15 to-[#E11D48]/10 blur-2xl" />
 
-            <div className="relative rounded-3xl border border-white/10 bg-gradient-to-br from-[#171329] to-[#0d1020] p-8 sm:p-10">
-              <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-blue-600 shadow-lg shadow-purple-600/20">
-                <ShoppingBag size={30} />
+            <div className="relative rounded-3xl border border-white/10 bg-gradient-to-br from-[#172019] to-[#111711] p-8 sm:p-10">
+              <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#16A34A] to-[#15803D] shadow-lg shadow-green-950/30">
+                <ShoppingBag size={30} className="text-white" />
               </div>
 
               <h3 className="text-2xl font-bold">Welcome to AI-SaleBD</h3>
-              <p className="mt-3 leading-7 text-gray-400">
+              <p className="mt-3 leading-7 text-[#A3ADA4]">
                 Your destination for exploring digital products and services in
                 one place.
               </p>
 
-              <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-5">
-                <p className="text-sm text-gray-400">Our tagline</p>
-                <p className="mt-2 bg-gradient-to-r from-purple-300 to-blue-300 bg-clip-text text-xl font-bold text-transparent">
+              <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                <p className="text-sm text-[#A3ADA4]">Our tagline</p>
+                <p className="mt-2 bg-gradient-to-r from-[#4ADE80] to-[#FB7185] bg-clip-text text-xl font-bold text-transparent">
                   Your Digital World, One Marketplace.
                 </p>
               </div>
@@ -197,13 +194,15 @@ export default function About() {
             whileInView={{ opacity: 1, y: 0 }}
             initial={{ opacity: 0, y: 20 }}
             viewport={{ once: true }}
-            className="rounded-3xl border border-purple-500/20 bg-gradient-to-br from-purple-600/15 to-transparent p-8 sm:p-10"
+            className="rounded-3xl border border-[#16A34A]/20 bg-gradient-to-br from-[#16A34A]/10 to-[#111711] p-8 sm:p-10"
           >
-            <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-500/15 text-purple-400">
+            <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#16A34A]/15 text-[#4ADE80]">
               <Target size={28} />
             </div>
+
             <h3 className="text-2xl font-bold">Our Mission</h3>
-            <p className="mt-4 leading-8 text-gray-400">
+
+            <p className="mt-4 leading-8 text-[#A3ADA4]">
               To make digital products easier to discover and access through a
               convenient, user-friendly marketplace that values customer
               experience and transparency.
@@ -215,13 +214,15 @@ export default function About() {
             initial={{ opacity: 0, y: 20 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-600/15 to-transparent p-8 sm:p-10"
+            className="rounded-3xl border border-[#E11D48]/20 bg-gradient-to-br from-[#E11D48]/10 to-[#111711] p-8 sm:p-10"
           >
-            <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/15 text-blue-400">
+            <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E11D48]/15 text-[#FB7185]">
               <Heart size={28} />
             </div>
+
             <h3 className="text-2xl font-bold">Our Vision</h3>
-            <p className="mt-4 leading-8 text-gray-400">
+
+            <p className="mt-4 leading-8 text-[#A3ADA4]">
               To grow into a trusted digital marketplace where people can
               discover a wide range of useful digital products and enjoy a
               simple shopping experience.
@@ -234,13 +235,15 @@ export default function About() {
       <section className="px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto mb-14 max-w-2xl text-center">
-            <p className="mb-3 text-sm font-bold uppercase tracking-[0.25em] text-purple-400">
+            <p className="mb-3 text-sm font-bold uppercase tracking-[0.25em] text-[#4ADE80]">
               What Matters to Us
             </p>
+
             <h2 className="text-3xl font-bold sm:text-4xl">
               The values behind AI-SaleBD
             </h2>
-            <p className="mt-4 leading-7 text-gray-400">
+
+            <p className="mt-4 leading-7 text-[#A3ADA4]">
               The principles that guide the experience we want to build.
             </p>
           </div>
@@ -256,13 +259,15 @@ export default function About() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.4, delay: index * 0.1 }}
-                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition hover:-translate-y-1 hover:border-purple-500/40 hover:bg-purple-500/[0.05]"
+                  className="rounded-2xl border border-white/10 bg-[#141A15] p-6 transition hover:-translate-y-1 hover:border-[#16A34A]/40 hover:bg-[#1A231B]"
                 >
-                  <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400">
+                  <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#16A34A]/10 text-[#4ADE80]">
                     <Icon size={24} />
                   </div>
+
                   <h3 className="text-lg font-bold">{value.title}</h3>
-                  <p className="mt-3 text-sm leading-7 text-gray-400">
+
+                  <p className="mt-3 text-sm leading-7 text-[#A3ADA4]">
                     {value.description}
                   </p>
                 </motion.div>
@@ -274,23 +279,29 @@ export default function About() {
 
       {/* Categories */}
       <section className="px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-5xl rounded-3xl border border-white/10 bg-gradient-to-br from-[#171329] to-[#0e1323] px-6 py-12 text-center sm:px-12">
-          <p className="text-sm font-bold uppercase tracking-[0.25em] text-purple-400">
+        <div className="mx-auto max-w-5xl rounded-3xl border border-white/10 bg-gradient-to-br from-[#172019] to-[#111711] px-6 py-12 text-center sm:px-12">
+          <p className="text-sm font-bold uppercase tracking-[0.25em] text-[#4ADE80]">
             Explore AI-SaleBD
           </p>
+
           <h2 className="mt-4 text-3xl font-bold sm:text-4xl">
             Everything digital, in one place.
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl leading-7 text-gray-400">
+
+          <p className="mx-auto mt-4 max-w-2xl leading-7 text-[#A3ADA4]">
             Discover different digital product categories available through our
             marketplace.
           </p>
 
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            {categories.map((category) => (
+            {categories.map((category, index) => (
               <span
                 key={category}
-                className="rounded-full border border-purple-500/20 bg-purple-500/10 px-5 py-2.5 text-sm text-purple-200"
+                className={`rounded-full border px-5 py-2.5 text-sm ${
+                  index % 2 === 0
+                    ? "border-[#16A34A]/25 bg-[#16A34A]/10 text-[#4ADE80]"
+                    : "border-[#E11D48]/25 bg-[#E11D48]/10 text-[#FB7185]"
+                }`}
               >
                 {category}
               </span>
@@ -299,7 +310,7 @@ export default function About() {
 
           <Link
             to="/shop"
-            className="mt-9 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-7 py-3.5 font-semibold transition hover:scale-105"
+            className="mt-9 inline-flex items-center gap-2 rounded-xl bg-[#16A34A] px-7 py-3.5 font-semibold text-white transition hover:scale-105 hover:bg-[#15803D]"
           >
             Start Exploring
             <ArrowRight size={18} />
